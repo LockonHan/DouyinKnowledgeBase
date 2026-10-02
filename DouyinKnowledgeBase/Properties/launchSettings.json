@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "DouyinKnowledgeBase (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "DouyinKnowledgeBase (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}
