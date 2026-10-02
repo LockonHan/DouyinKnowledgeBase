@@ -40,9 +40,14 @@ DouyinKnowledgeBase/
 └── Assets/                     # 应用图标与资源
 ```
 
+## 工具脚本
+
+- 	ools/export_cookies.py：导出浏览器 cookie（需管理员运行，用于抖音下载）
+- 	ools/transcribe_funasr.py：本地 FunASR 转写（Paraformer-large + VAD + 标点）
+
 ## Roadmap
 
-- [ ] 视频链接解析与下载
-- [ ] 本地语音转写
+- [x] 视频链接解析与下载（yt-dlp + 浏览器 cookie）
+- [x] 本地语音转写（FunASR Paraformer-large，GPU 加速）
 - [ ] AI 文章总结
 - [ ] 知识库浏览与搜索
