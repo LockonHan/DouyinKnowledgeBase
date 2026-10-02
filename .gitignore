@@ -1,0 +1,10 @@
+# 濯掍綋涓庢晱鎰熸暟鎹紙涓嶅叆搴擄級
+data/videos/
+data/audio/
+data/cookies.txt
+data/*.html
+data/*.json
+
+# 涓存椂/涓棿浜х墿
+work/
+tools/*.logdata/*.log
