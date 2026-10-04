@@ -111,6 +111,8 @@ def download(url, videos_dir, cookies, ytdlp_override):
     """优先用无头浏览器直取带音轨的 MP4 直链，失败再回退 yt-dlp。"""
     try:
         return douyin_download.download(url, videos_dir, emit, cookies=cookies)
+    except douyin_download.DependencyError as exc:
+        fail(f"下载环境不完整：{exc}")
     except douyin_download.DownloadError as exc:
         emit(stage="download", percent=-1,
              message=f"浏览器下载未成功：{exc} 尝试回退到 yt-dlp…")

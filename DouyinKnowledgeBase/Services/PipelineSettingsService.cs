@@ -30,9 +30,14 @@ public sealed class PipelineSettingsService
             return CreateDefault();
         }
 
-        if (string.IsNullOrWhiteSpace(settings.PythonPath))
+        if (!RepoLocator.IsUsablePython(settings.PythonPath))
         {
-            settings.PythonPath = RepoLocator.DetectPython();
+            // 配置里的解释器不存在或缺少 funasr / playwright 等依赖时，自动改用探测到的可用解释器。
+            string detected = RepoLocator.DetectPython();
+            if (!string.IsNullOrWhiteSpace(detected))
+            {
+                settings.PythonPath = detected;
+            }
         }
 
         if (string.IsNullOrWhiteSpace(settings.DataDir))

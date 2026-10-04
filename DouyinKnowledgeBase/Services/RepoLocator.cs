@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace DouyinKnowledgeBase.Services;
 
 /// <summary>
@@ -23,8 +25,70 @@ public static class RepoLocator
         return null;
     }
 
-    /// <summary>探测带 FunASR 的 Python 解释器路径。</summary>
+    /// <summary>
+    /// 判断指定解释器是否可用：文件存在，且装齐管线所需模块
+    /// （funasr 转写、playwright + curl_cffi 下载）。
+    /// </summary>
+    public static bool IsUsablePython(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+        {
+            return false;
+        }
+
+        const string probe =
+            "import importlib.util as u,sys;" +
+            "sys.exit(0 if all(u.find_spec(m) for m in ('funasr','playwright','curl_cffi')) else 1)";
+
+        try
+        {
+            ProcessStartInfo psi = new()
+            {
+                FileName = path,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+            };
+            psi.ArgumentList.Add("-c");
+            psi.ArgumentList.Add(probe);
+
+            using Process? process = Process.Start(psi);
+            if (process is null)
+            {
+                return false;
+            }
+
+            if (!process.WaitForExit(30000))
+            {
+                process.Kill(true);
+                return false;
+            }
+
+            return process.ExitCode == 0;
+        }
+        catch (Exception)
+        {
+            return false;
+        }
+    }
+
+    /// <summary>探测带依赖的 Python 解释器路径；找不到可用的时回退到第一个存在的解释器。</summary>
     public static string DetectPython()
+    {
+        List<string> candidates = EnumeratePythonCandidates().ToList();
+        foreach (string candidate in candidates)
+        {
+            if (IsUsablePython(candidate))
+            {
+                return candidate;
+            }
+        }
+
+        return candidates.Count > 0 ? candidates[0] : "";
+    }
+
+    private static IEnumerable<string> EnumeratePythonCandidates()
     {
         string? pathVar = Environment.GetEnvironmentVariable("PATH");
         if (!string.IsNullOrEmpty(pathVar))
@@ -37,17 +101,20 @@ public static class RepoLocator
                     continue;
                 }
 
+                string exe;
                 try
                 {
-                    string exe = Path.Combine(entry, "python.exe");
-                    if (File.Exists(exe))
-                    {
-                        return exe;
-                    }
+                    exe = Path.Combine(entry, "python.exe");
                 }
                 catch (ArgumentException)
                 {
                     // 非法 PATH 片段，跳过。
+                    continue;
+                }
+
+                if (File.Exists(exe))
+                {
+                    yield return exe;
                 }
             }
         }
@@ -58,11 +125,9 @@ public static class RepoLocator
             string exe = Path.Combine(home, name, "python.exe");
             if (File.Exists(exe))
             {
-                return exe;
+                yield return exe;
             }
         }
-
-        return "";
     }
 
     /// <summary>默认数据目录（仓库下的 data 目录）。</summary>

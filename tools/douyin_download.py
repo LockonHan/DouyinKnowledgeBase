@@ -31,6 +31,10 @@ class DownloadError(RuntimeError):
     """下载环节的可预期失败，交由上层转换为友好提示。"""
 
 
+class DependencyError(DownloadError):
+    """运行环境缺少依赖（例如 Playwright 未安装）；回退 yt-dlp 也无法解决。"""
+
+
 def extract_url(text):
     """从分享文案里取出第一个链接（优先 douyin.com 域名）。"""
     candidates = _URL_RE.findall(text or "")
@@ -104,8 +108,9 @@ def fetch_detail(video_url, cookies_path, emit, timeout_ms=60000, settle_ms=9000
     try:
         from playwright.sync_api import sync_playwright
     except ImportError as exc:
-        raise DownloadError(
-            "未安装 Playwright。请运行：pip install playwright && playwright install chromium"
+        raise DependencyError(
+            "当前 Python 未安装 Playwright。请在“设置 → 视频下载与转写”中选择已安装 "
+            "playwright 的 Python，或运行：pip install playwright && playwright install chromium"
         ) from exc
 
     captured = {"detail": None}
@@ -117,7 +122,7 @@ def fetch_detail(video_url, cookies_path, emit, timeout_ms=60000, settle_ms=9000
                 args=["--disable-blink-features=AutomationControlled", "--no-sandbox"],
             )
         except Exception as exc:
-            raise DownloadError(
+            raise DependencyError(
                 "启动无头浏览器失败，请确认已执行 playwright install chromium。"
                 f"原始错误：{exc}"
             ) from exc
