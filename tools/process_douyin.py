@@ -2,11 +2,15 @@
 
 用法:
     python process_douyin.py --share "分享文案或链接" --data-dir <数据目录>
-        [--cookies <cookies.txt>] [--device cuda:0]
+        [--cookies <cookies.txt>] [--device auto|cpu|cuda:0]
+        [--asr auto|resident|oneshot] [--runtime-dir <运行时目录>]
         [--ytdlp <yt-dlp 可执行文件>] [--ffmpeg <ffmpeg 可执行文件>]
 
 下载默认走无头浏览器方案（tools/douyin_download.py），用于绕过抖音网页接口的
 签名校验；若浏览器方案失败且本机存在 yt-dlp，则回退到 yt-dlp。
+
+转写默认优先使用常驻服务（tools/asr_server.py，模型只加载一次）；
+未启用或不可用时自动回落到一次性转写（tools/transcribe_funasr.py）。
 
 进度通过 stdout 上以 @@PROG@@ 为前缀的 JSON 行输出，供宿主程序解析：
     @@PROG@@ {"stage": "download", "percent": 42, "message": "..."}
@@ -20,7 +24,10 @@ import shutil
 import subprocess
 import sys
 
-import douyin_download
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+import asr_client  # noqa: E402
+import douyin_download  # noqa: E402
 
 PREFIX = "@@PROG@@"
 PERCENT_RE = re.compile(r"\[download\]\s+(\d+(?:\.\d+)?)%")
@@ -136,7 +143,19 @@ def extract_audio(ffmpeg, video, wav):
     return wav
 
 
-def transcribe(python_exe, script, wav, out_base, device):
+def transcribe_via_resident(wav, out_base, runtime_dir):
+    emit(stage="transcribe", percent=-1, message="正在使用常驻转写服务（模型已就绪）…")
+    result = asr_client.transcribe(runtime_dir, wav, out_base)
+    txt = result.get("output") or (out_base + ".txt")
+    if not os.path.isfile(txt):
+        raise RuntimeError("常驻服务未生成转写稿")
+    emit(stage="transcribe", percent=100,
+         message="转写完成（常驻服务，{} 字符 / {:.1f}s）".format(
+             result.get("chars", 0), float(result.get("elapsed") or 0)))
+    return txt
+
+
+def transcribe_oneshot(python_exe, script, wav, out_base, device):
     emit(stage="transcribe", percent=-1, message="正在调用本地 FunASR 转写，首次加载模型较慢…")
     cmd = [python_exe, script, wav, "-o", out_base, "--device", device]
     for proc, line in stream(cmd):
@@ -148,12 +167,27 @@ def transcribe(python_exe, script, wav, out_base, device):
     return txt
 
 
+def transcribe(python_exe, script, wav, out_base, device, asr_mode, runtime_dir):
+    if asr_mode in ("auto", "resident"):
+        try:
+            return transcribe_via_resident(wav, out_base, runtime_dir)
+        except Exception as exc:
+            if asr_mode == "resident":
+                fail(f"常驻转写服务不可用：{exc}")
+            emit(stage="transcribe", percent=-1,
+                 message=f"常驻服务不可用（{exc}），改用一次性转写…")
+    return transcribe_oneshot(python_exe, script, wav, out_base, device)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--share", required=True)
     ap.add_argument("--data-dir", required=True)
     ap.add_argument("--cookies", default=None)
-    ap.add_argument("--device", default="cuda:0")
+    ap.add_argument("--device", default="auto", help="auto / cpu / cuda:0")
+    ap.add_argument("--asr", default="auto", choices=["auto", "resident", "oneshot"],
+                    help="转写方式：优先常驻 / 只用常驻 / 只用一次性")
+    ap.add_argument("--runtime-dir", default=None, help="常驻服务发现文件所在目录")
     ap.add_argument("--ytdlp", default=None)
     ap.add_argument("--ffmpeg", default=None)
     ap.add_argument("--python", default=None, help="用于转写的 Python（默认与当前解释器相同）")
@@ -177,6 +211,7 @@ def main():
     script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "transcribe_funasr.py")
 
     cookies = args.cookies or os.path.join(data_dir, "cookies.txt")
+    runtime_dir = args.runtime_dir or os.path.join(data_dir, "runtime")
 
     video, forced_title = download(url, videos_dir, cookies, args.ytdlp)
     title = forced_title or os.path.splitext(os.path.basename(video))[0]
@@ -188,7 +223,7 @@ def main():
     emit(stage="audio", percent=100, audio=wav, message="音频提取完成")
 
     out_base = os.path.join(transcripts_dir, title)
-    txt = transcribe(python_exe, script, wav, out_base, args.device)
+    txt = transcribe(python_exe, script, wav, out_base, args.device, args.asr, runtime_dir)
     emit(stage="transcribe", percent=100, message=f"转写完成：{os.path.getsize(txt)} 字节")
 
     emit(stage="done", percent=100, title=title, video=video, audio=wav,
