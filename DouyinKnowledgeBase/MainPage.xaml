@@ -27,7 +27,7 @@
             HorizontalAlignment="Center"
             VerticalAlignment="Center"
             Spacing="8"
-            MaxWidth="520">
+            MaxWidth="560">
             <TextBlock
                 Text="抖音知识库"
                 Style="{StaticResource TitleTextBlockStyle}"
@@ -38,8 +38,16 @@
                 HorizontalAlignment="Center"
                 TextAlignment="Center"
                 Opacity="0.7" />
+            <Button
+                x:Name="SummaryButton"
+                Click="SummaryButton_Click"
+                Content="开始总结一篇文稿"
+                Style="{StaticResource AccentButtonStyle}"
+                HorizontalAlignment="Center"
+                Padding="24,10"
+                Margin="0,12,0,0" />
             <TextBlock
-                Text="（视频收藏与转写功能即将上线）"
+                Text="（视频收藏与自动转写功能即将上线）"
                 HorizontalAlignment="Center"
                 Opacity="0.5"
                 FontSize="12" />
