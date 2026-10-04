@@ -23,6 +23,25 @@ public partial class App : Application
     public App()
     {
         InitializeComponent();
+
+        // 记录未处理异常，便于用户反馈与排查（写入本地数据目录 crash.log）。
+        UnhandledException += (_, e) => WriteCrashLog(e.Exception);
+        AppDomain.CurrentDomain.UnhandledException += (_, e) => WriteCrashLog(e.ExceptionObject as Exception);
+        TaskScheduler.UnobservedTaskException += (_, e) => WriteCrashLog(e.Exception);
+    }
+
+    /// <summary>把未处理异常追加写入 crash.log。</summary>
+    private static void WriteCrashLog(Exception? exception)
+    {
+        try
+        {
+            string path = Path.Combine(AppPaths.LocalDataDir, "crash.log");
+            File.AppendAllText(path, $"[{DateTime.Now:O}] {exception}\n\n");
+        }
+        catch (Exception)
+        {
+            // 记录失败不影响应用。
+        }
     }
 
     /// <summary>
@@ -45,6 +64,19 @@ public partial class App : Application
         try
         {
             PipelineSettings settings = await new PipelineSettingsService().LoadAsync();
+            if (!settings.AsrResident || !RepoLocator.ModelsReady(settings.ModelsDir))
+            {
+                // 环境尚未就绪（缺依赖或语音模型）时不启动，交由「环境准备」向导引导下载。
+                return;
+            }
+
+            string python = RepoLocator.EffectivePython(settings.PythonPath);
+            if (string.IsNullOrWhiteSpace(python))
+            {
+                return;
+            }
+
+            settings.PythonPath = python;
             AsrServer.Start(settings);
         }
         catch (Exception)

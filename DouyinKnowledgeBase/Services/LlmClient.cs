@@ -40,7 +40,7 @@ public sealed class LlmClient
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", settings.ApiKey.Trim());
         }
 
-        request.Content = JsonContent.Create(payload);
+        request.Content = JsonContent.Create(payload, options: JsonDefaults.CaseInsensitive);
         using HttpResponseMessage response = await _http.SendAsync(request);
         string body = await response.Content.ReadAsStringAsync();
         if (!response.IsSuccessStatusCode)

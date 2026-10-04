@@ -57,6 +57,11 @@ public sealed partial class SettingsPage : Page
         DeviceBox.SelectedIndex = 0;
     }
 
+    private void SetupButton_Click(object sender, RoutedEventArgs e)
+    {
+        Frame.Navigate(typeof(SetupPage));
+    }
+
     private void BackButton_Click(object sender, RoutedEventArgs e)
     {
         if (Frame.CanGoBack)

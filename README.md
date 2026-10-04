@@ -7,6 +7,7 @@
 - **视频下载**：粘贴抖音分享链接，自动解析并下载视频到本地
 - **语音转写**：调用本地语音转写模型（FunASR，离线运行），把视频音轨转成文字稿
 - **AI 总结**：把文字稿交给大模型，生成结构化知识科普文章
+- **环境准备向导**：首次使用时检测设备（NVIDIA GPU / CPU），按需从国内源下载转写与下载组件、语音模型
 - **知识库管理**：按主题/博主归档文章，支持搜索与浏览（规划中）
 
 ## 技术栈
@@ -34,6 +35,37 @@ dotnet run -p:Platform=x64
 
 也可以直接双击仓库根目录的 `启动应用.bat`。
 
+## 环境准备向导（首次使用）
+
+应用内置「环境准备」向导（主页 / 设置页入口），用于一键准备本地运行环境：
+
+1. 自动检测 NVIDIA 显卡并弹窗让用户选择 **GPU 加速** 或 **CPU** 转写
+2. 按选择安装 PyTorch、FunASR 依赖、Playwright 浏览器内核
+3. 从 **ModelScope 国内源** 下载语音模型（Paraformer-large + VAD + 标点）
+4. 可指定已有的 **离线模型目录**，已就绪的项会自动跳过
+
+命令行等价用法：
+
+```powershell
+python tools\env_setup.py --check                          # 自检并输出 @@ENV@@ 报告
+python tools\env_setup.py --install --device cpu|gpu       # 按需安装（@@SETUP@@ 进度）
+```
+
+CPU 版本内置并随安装包分发，无需联网即可安装；GPU 版本按需下载 CUDA 版 PyTorch。
+
+## 打包与安装
+
+打包脚本会生成自包含的 `packaging\payload`（应用 + 内置 CPU Python 运行时 + ffmpeg + 工具脚本），
+并可用 Inno Setup 6 编译为每用户安装器（安装向导中可自选安装位置）。
+
+```powershell
+powershell -ExecutionPolicy Bypass -File packaging\build.ps1                 # 生成 payload
+powershell -ExecutionPolicy Bypass -File packaging\build.ps1 -MakeInstaller  # 生成安装器
+```
+
+详见 `packaging\README.md`。安装包为「瘦客户端」模式：转写与下载所需的 Python 依赖（CPU 版）
+已内置，语音模型在首次运行时按设备从国内源下载，也可手动指定离线模型目录。
+
 ## 使用流程
 
 1. 打开应用 → “粘贴链接，下载并转写” → 粘贴抖音分享文案，点击“开始下载并转写”
@@ -52,12 +84,14 @@ DouyinKnowledgeBase/            # WinUI 3 应用
 │   ├── DownloadPage.xaml       # 粘贴链接 → 下载并转写
 │   ├── CookiePage.xaml         # 应用内登录抖音并导出 Cookie
 │   ├── SummaryPage.xaml        # 转写稿 → AI 结构化文章
+│   ├── SetupPage.xaml          # 环境准备向导（设备检测 / 按需安装 / 自检）
 │   └── SettingsPage.xaml       # 大模型接入点 + 管线配置
 ├── Services/                   # 配置持久化、LLM 客户端、管线编排
 ├── Package.appxmanifest        # 打包清单（runFullTrust）
 └── Assets/                     # 应用图标与资源
 
 tools/                          # Python 工具脚本
+packaging/                      # 打包脚本 + Inno Setup 安装器脚本（payload/out 不入库）
 data/                           # 运行时数据（不入库：videos/audio/cookies）
 ```
 
@@ -66,6 +100,8 @@ data/                           # 运行时数据（不入库：videos/audio/coo
 - `tools/process_douyin.py`：管线编排。输入分享链接 → 下载视频 → ffmpeg 提取 16kHz 单声道音频 → FunASR 转写，并以 `@@PROG@@` 前缀的 JSON 行上报进度
 - `tools/douyin_download.py`：抖音视频下载。用无头 Chromium 打开视频页，截获官方接口返回的 `play_addr` 直链（含音轨）后下载；必要时回退 yt-dlp
 - `tools/transcribe_funasr.py`：本地 FunASR 转写（Paraformer-large + VAD + 标点，GPU 加速）
+- `tools/env_setup.py`：环境检测与按需安装（torch / 依赖 / Playwright 浏览器 / 语音模型）
+- `tools/asr_server.py` / `tools/asr_client.py`：常驻转写服务与客户端（加载一次模型，多次复用）
 - `tools/export_cookies.py`：导出浏览器抖音 Cookie（备用，需管理员运行）
 
 ## Roadmap
@@ -75,4 +111,7 @@ data/                           # 运行时数据（不入库：videos/audio/coo
 - [x] AI 文章总结（OpenAI 兼容接入点，可配置）
 - [x] 粘贴链接 → 下载 → 转写 一键流程
 - [x] 应用内登录抖音获取 Cookie（免去管理员导出）
+- [x] 常驻转写服务（模型只加载一次，显著加快连续转写）
+- [x] 环境准备向导（设备检测 / 国内源按需下载 / 离线模型目录）
+- [x] 打包脚本与 Inno Setup 安装器（内置 CPU 运行时，自选安装位置）
 - [ ] 知识库浏览与搜索

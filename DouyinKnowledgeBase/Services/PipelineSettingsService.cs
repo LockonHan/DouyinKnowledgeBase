@@ -27,21 +27,18 @@ public sealed class PipelineSettingsService
             }
 
             string json = await File.ReadAllTextAsync(FilePath);
-            settings = JsonSerializer.Deserialize<PipelineSettings>(json) ?? CreateDefault();
+            settings = JsonSerializer.Deserialize<PipelineSettings>(json, JsonDefaults.CaseInsensitive) ?? CreateDefault();
         }
         catch (Exception)
         {
             return CreateDefault();
         }
 
-        if (!RepoLocator.IsUsablePython(settings.PythonPath))
+        // 配置里的解释器不可用时，依次回落到内置运行时与自动探测结果。
+        string effective = RepoLocator.EffectivePython(settings.PythonPath);
+        if (!string.IsNullOrWhiteSpace(effective))
         {
-            // 配置里的解释器不存在或缺少 funasr / playwright 等依赖时，自动改用探测到的可用解释器。
-            string detected = RepoLocator.DetectPython();
-            if (!string.IsNullOrWhiteSpace(detected))
-            {
-                settings.PythonPath = detected;
-            }
+            settings.PythonPath = effective;
         }
 
         if (string.IsNullOrWhiteSpace(settings.DataDir))
@@ -59,7 +56,7 @@ public sealed class PipelineSettingsService
 
     public async Task SaveAsync(PipelineSettings settings)
     {
-        string json = JsonSerializer.Serialize(settings, new JsonSerializerOptions { WriteIndented = true });
+        string json = JsonSerializer.Serialize(settings, JsonDefaults.Indented);
         await File.WriteAllTextAsync(FilePath, json);
     }
 
@@ -67,7 +64,7 @@ public sealed class PipelineSettingsService
     {
         return new PipelineSettings
         {
-            PythonPath = RepoLocator.DetectPython(),
+            PythonPath = RepoLocator.EffectivePython(""),
             DataDir = RepoLocator.DefaultDataDir(),
             Device = "auto",
             AsrResident = true,

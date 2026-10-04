@@ -25,7 +25,7 @@ public sealed class SettingsService
             }
 
             string json = await File.ReadAllTextAsync(FilePath);
-            return JsonSerializer.Deserialize<LlmSettings>(json) ?? new LlmSettings();
+            return JsonSerializer.Deserialize<LlmSettings>(json, JsonDefaults.CaseInsensitive) ?? new LlmSettings();
         }
         catch (Exception)
         {
@@ -36,7 +36,7 @@ public sealed class SettingsService
     /// <summary>将配置保存到本地数据目录。</summary>
     public async Task SaveAsync(LlmSettings settings)
     {
-        string json = JsonSerializer.Serialize(settings, new JsonSerializerOptions { WriteIndented = true });
+        string json = JsonSerializer.Serialize(settings, JsonDefaults.Indented);
         await File.WriteAllTextAsync(FilePath, json);
     }
 }

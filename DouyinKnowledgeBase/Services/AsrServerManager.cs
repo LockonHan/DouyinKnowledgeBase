@@ -147,12 +147,8 @@ public sealed class AsrServerManager
 
     private static string ResolveModelsDir(PipelineSettings settings)
     {
-        if (!string.IsNullOrWhiteSpace(settings.ModelsDir) && Directory.Exists(settings.ModelsDir))
-        {
-            return settings.ModelsDir;
-        }
-
-        return RepoLocator.BundledModelsDir() ?? "";
+        // 优先复用已有模型的目录，避免把空目录当作缓存导致重复下载。
+        return RepoLocator.EffectiveModelsCache(settings.ModelsDir);
     }
 
     private async Task RequestShutdown()

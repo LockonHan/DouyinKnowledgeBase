@@ -52,6 +52,12 @@
                 Content="我已有转写稿，直接 AI 总结"
                 HorizontalAlignment="Center"
                 Padding="16,8" />
+            <Button
+                x:Name="SetupButton"
+                Click="SetupButton_Click"
+                Content="环境准备（下载模型与运行时）"
+                HorizontalAlignment="Center"
+                Padding="16,8" />
         </StackPanel>
     </Grid>
 </Page>

@@ -73,12 +73,16 @@ public sealed class VideoPipelineService
             psi.ArgumentList.Add(bundledFfmpeg);
         }
 
-        string modelsDir = !string.IsNullOrWhiteSpace(settings.ModelsDir) && Directory.Exists(settings.ModelsDir)
-            ? settings.ModelsDir
-            : RepoLocator.BundledModelsDir() ?? "";
-        if (modelsDir.Length > 0)
+        string modelsDir = RepoLocator.EffectiveModelsCache(settings.ModelsDir);
+        if (Directory.Exists(modelsDir))
         {
             psi.Environment["MODELSCOPE_CACHE"] = modelsDir;
+        }
+
+        string? browsersDir = RepoLocator.BundledBrowsersDir();
+        if (browsersDir is not null)
+        {
+            psi.Environment["PLAYWRIGHT_BROWSERS_PATH"] = browsersDir;
         }
 
         psi.Environment["PYTHONIOENCODING"] = "utf-8";

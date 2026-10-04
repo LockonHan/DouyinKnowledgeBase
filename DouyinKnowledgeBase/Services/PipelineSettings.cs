@@ -26,4 +26,8 @@ public sealed class PipelineSettings
     /// <summary>离线模型目录（可选）；留空则使用内置/默认缓存目录。</summary>
     [JsonPropertyName("modelsDir")]
     public string ModelsDir { get; set; } = "";
+
+    /// <summary>用户是否已明确选择过 GPU / CPU，避免每次启动重复弹窗询问。</summary>
+    [JsonPropertyName("deviceChosen")]
+    public bool DeviceChosen { get; set; }
 }

@@ -28,4 +28,9 @@ public sealed partial class MainPage : Page
     {
         Frame.Navigate(typeof(SummaryPage));
     }
+
+    private void SetupButton_Click(object sender, RoutedEventArgs e)
+    {
+        Frame.Navigate(typeof(SetupPage));
+    }
 }

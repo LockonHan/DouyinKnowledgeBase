@@ -63,6 +63,252 @@ public static class RepoLocator
         return Directory.Exists(models) ? models : null;
     }
 
+    /// <summary>安装目录内置的模型缓存根目录（存在时返回，否则 null）。</summary>
+    public static string? BundledModelsCache()
+    {
+        return BundledModelsDir();
+    }
+
+    /// <summary>默认模型缓存根目录：内置目录优先，其次用户数据目录。</summary>
+    public static string DefaultModelsCache()
+    {
+        return BundledModelsCache() ?? Path.Combine(AppPaths.LocalDataDir, "models");
+    }
+
+    /// <summary>
+    /// 把用户指定的“离线模型目录”规范化为 ModelScope 缓存根目录。
+    /// 用户可能直接指向 models 子目录，这里向上回退一层。
+    /// </summary>
+    public static string NormalizeModelsCache(string? dir)
+    {
+        if (string.IsNullOrWhiteSpace(dir))
+        {
+            return "";
+        }
+
+        string full;
+        try
+        {
+            full = Path.GetFullPath(dir);
+        }
+        catch (Exception)
+        {
+            return dir;
+        }
+
+        if (!Directory.Exists(full))
+        {
+            return full;
+        }
+
+        // 已经是缓存根：其下存在 models 子目录。
+        if (Directory.Exists(Path.Combine(full, "models")))
+        {
+            return full;
+        }
+
+        // 指向了 models 子目录本身（其下直接是 iic），向上回退一层。
+        if (Directory.Exists(Path.Combine(full, "iic")))
+        {
+            DirectoryInfo? parent = Directory.GetParent(full);
+            if (parent is not null)
+            {
+                return parent.FullName;
+            }
+        }
+
+        return full;
+    }
+
+    /// <summary>安装目录内置的 Python 运行时（存在时返回，否则 null）。</summary>
+    public static string? BundledPython()
+    {
+        string? root = FindRepoRoot();
+        if (root is null)
+        {
+            return null;
+        }
+
+        string exe = Path.Combine(root, "runtime", "python", "python.exe");
+        return File.Exists(exe) ? exe : null;
+    }
+
+    /// <summary>安装目录内置的 Playwright 浏览器目录（存在时返回，否则 null）。</summary>
+    public static string? BundledBrowsersDir()
+    {
+        string? root = FindRepoRoot();
+        if (root is null)
+        {
+            return null;
+        }
+
+        string dir = Path.Combine(root, "runtime", "browsers");
+        return Directory.Exists(dir) ? dir : null;
+    }
+
+    /// <summary>解析实际使用的 Python：内置运行时优先，其次配置值，最后自动探测。</summary>
+    public static string EffectivePython(string? configured)
+    {
+        string? bundled = BundledPython();
+        if (bundled is not null && IsUsablePython(bundled))
+        {
+            return bundled;
+        }
+
+        if (IsUsablePython(configured))
+        {
+            return configured!;
+        }
+
+        string detected = DetectPython();
+        if (!string.IsNullOrWhiteSpace(detected))
+        {
+            return detected;
+        }
+
+        return bundled ?? configured ?? "";
+    }
+
+    /// <summary>环境准备的目标 Python：内置运行时优先（即便尚未安装依赖）。</summary>
+    public static string SetupTargetPython(string? configured)
+    {
+        string? bundled = BundledPython();
+        if (bundled is not null)
+        {
+            return bundled;
+        }
+
+        return EffectivePython(configured);
+    }
+
+    /// <summary>内置运行时根目录（runtime），无法定位安装目录时为 null。</summary>
+    public static string? RuntimeRoot()
+    {
+        string? root = FindRepoRoot();
+        return root is null ? null : Path.Combine(root, "runtime");
+    }
+
+    /// <summary>
+    /// 环境准备时 Playwright 浏览器的目标目录：仅当存在内置运行时目录（即安装版）时
+    /// 返回 &lt;runtime&gt;\browsers，否则返回空字符串，避免覆盖 Playwright 默认位置。
+    /// </summary>
+    public static string SetupBrowsersDir()
+    {
+        string? runtime = RuntimeRoot();
+        if (runtime is null || !Directory.Exists(runtime))
+        {
+            return "";
+        }
+
+        return Path.Combine(runtime, "browsers");
+    }
+
+    /// <summary>本应用需要的 FunASR 模型（ModelScope 上的仓库名）。</summary>
+    public static readonly string[] RequiredModels =
+    {
+        "speech_paraformer-large-vad-punc_asr_nat-zh-cn-16k-common-vocab8404-pytorch",
+        "speech_fsmn_vad_zh-cn-16k-common-pytorch",
+        "punc_ct-transformer_cn-en-common-vocab471067-large",
+    };
+
+    /// <summary>判断给定 ModelScope 缓存根目录下是否已包含全部所需模型。</summary>
+    public static bool HasAllModels(string? cacheRoot)
+    {
+        if (string.IsNullOrWhiteSpace(cacheRoot) || !Directory.Exists(cacheRoot))
+        {
+            return false;
+        }
+
+        string[] roots =
+        {
+            Path.Combine(cacheRoot, "models", "iic"),
+            Path.Combine(cacheRoot, "iic"),
+        };
+
+        foreach (string root in roots)
+        {
+            if (!Directory.Exists(root))
+            {
+                continue;
+            }
+
+            if (RequiredModels.All(model => Directory.Exists(Path.Combine(root, model))))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>列出缺失的模型仓库名。</summary>
+    public static IReadOnlyList<string> MissingModels(string? cacheRoot)
+    {
+        string[] roots =
+        {
+            Path.Combine(cacheRoot ?? "", "models", "iic"),
+            Path.Combine(cacheRoot ?? "", "iic"),
+        };
+
+        List<string> missing = new();
+        foreach (string model in RequiredModels)
+        {
+            bool found = roots.Any(root => Directory.Exists(Path.Combine(root, model)));
+            if (!found)
+            {
+                missing.Add(model);
+            }
+        }
+
+        return missing;
+    }
+
+    /// <summary>
+    /// 解析实际使用的 ModelScope 缓存根目录：优先“已包含全部模型”的目录
+    /// （用户指定 → 内置目录 → 本机默认缓存），避免重复下载。
+    /// 都没有时回落到内置目录；返回空字符串表示交给 ModelScope 使用默认位置。
+    /// </summary>
+    public static string EffectiveModelsCache(string? configured)
+    {
+        string normalized = NormalizeModelsCache(configured);
+        if (HasAllModels(normalized))
+        {
+            return normalized;
+        }
+
+        string? bundled = BundledModelsCache();
+        if (bundled is not null && HasAllModels(bundled))
+        {
+            return bundled;
+        }
+
+        if (HasAllModels(DefaultModelscopeCache()))
+        {
+            return DefaultModelscopeCache();
+        }
+
+        if (!string.IsNullOrWhiteSpace(normalized))
+        {
+            return normalized;
+        }
+
+        return bundled ?? "";
+    }
+
+    /// <summary>本机是否已具备全部语音模型（用户目录 / 内置目录 / 默认缓存任一）。</summary>
+    public static bool ModelsReady(string? configured)
+    {
+        return HasAllModels(EffectiveModelsCache(configured));
+    }
+
+    /// <summary>ModelScope 默认缓存根目录（%USERPROFILE%\.cache\modelscope\hub）。</summary>
+    public static string DefaultModelscopeCache()
+    {
+        return Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            ".cache", "modelscope", "hub");
+    }
+
     /// <summary>
     /// 判断指定解释器是否可用：文件存在，且装齐管线所需模块
     /// （funasr 转写、playwright + curl_cffi 下载）。
