@@ -49,19 +49,29 @@ public static class AppPaths
 
             foreach (string packageDir in Directory.GetDirectories(packages, "E3D3CF54*"))
             {
-                string localState = Path.Combine(packageDir, "LocalState");
-                if (!Directory.Exists(localState))
+                // 旧版打包应用：配置可能位于 LocalState，也可能因文件系统虚拟化落在 LocalCache。
+                string[] legacyDirs =
                 {
-                    continue;
-                }
+                    Path.Combine(packageDir, "LocalState"),
+                    Path.Combine(packageDir, "LocalCache", "Local", AppFolderName),
+                    Path.Combine(packageDir, "LocalCache", "Local", "Packages"),
+                };
 
-                foreach (string name in fileNames)
+                foreach (string legacyDir in legacyDirs)
                 {
-                    string source = Path.Combine(localState, name);
-                    string target = Path.Combine(LocalDataDir, name);
-                    if (File.Exists(source) && !File.Exists(target))
+                    if (!Directory.Exists(legacyDir))
                     {
-                        File.Copy(source, target, overwrite: false);
+                        continue;
+                    }
+
+                    foreach (string name in fileNames)
+                    {
+                        string source = Path.Combine(legacyDir, name);
+                        string target = Path.Combine(LocalDataDir, name);
+                        if (File.Exists(source) && !File.Exists(target))
+                        {
+                            File.Copy(source, target, overwrite: false);
+                        }
                     }
                 }
             }

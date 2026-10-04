@@ -79,6 +79,8 @@ public sealed class AsrServerManager
         psi.ArgumentList.Add(AppPaths.RuntimeDir);
         psi.ArgumentList.Add("--device");
         psi.ArgumentList.Add(string.IsNullOrWhiteSpace(settings.Device) ? "auto" : settings.Device);
+        psi.ArgumentList.Add("--parent-pid");
+        psi.ArgumentList.Add(Environment.ProcessId.ToString());
 
         string modelsDir = ResolveModelsDir(settings);
         if (!string.IsNullOrWhiteSpace(modelsDir))

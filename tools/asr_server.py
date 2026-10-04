@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import argparse
+import ctypes
 import json
 import os
 import socket
@@ -115,6 +116,30 @@ class Handler(BaseHTTPRequestHandler):
             self._send(500, {"status": "error", "message": str(exc)})
 
 
+def _parent_alive(pid: int) -> bool:
+    """在 Windows 上判断宿主进程是否仍存在。"""
+    if not pid:
+        return True
+    try:
+        PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+        kernel32 = ctypes.windll.kernel32
+        handle = kernel32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, pid)
+        if not handle:
+            return False
+        kernel32.CloseHandle(handle)
+        return True
+    except Exception:
+        return True
+
+
+def watch_parent(pid: int, stop: threading.Event):
+    """宿主进程消失后关闭服务。"""
+    while not stop.wait(5):
+        if not _parent_alive(pid):
+            emit(stage="stopped", message="宿主进程已退出，常驻转写服务自动结束")
+            os._exit(0)
+
+
 def free_port() -> int:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.bind(("127.0.0.1", 0))
@@ -130,10 +155,23 @@ def main():
     ap.add_argument("--vad", default=None)
     ap.add_argument("--punc", default=None)
     ap.add_argument("--port", type=int, default=0)
+    ap.add_argument("--parent-pid", type=int, default=0,
+                    help="宿主进程 PID；宿主退出后本服务自动结束，避免残留")
     args = ap.parse_args()
 
     os.makedirs(args.runtime_dir, exist_ok=True)
     info_path = os.path.join(args.runtime_dir, SERVER_INFO)
+
+    # 清理上一次运行残留的发现文件，避免客户端连接到已经没有的旧服务。
+    for stale in (info_path, info_path + ".error", info_path + ".tmp"):
+        try:
+            if os.path.exists(stale):
+                os.remove(stale)
+        except OSError:
+            pass
+
+    if args.parent_pid:
+        threading.Thread(target=watch_parent, args=(args.parent_pid, threading.Event()), daemon=True).start()
 
     device = asr_core.resolve_device(args.device)
     STATE["device"] = device
@@ -174,6 +212,7 @@ def main():
 
     emit(stage="ready", port=port, device=device, pid=os.getpid(),
          message=f"常驻转写服务就绪：127.0.0.1:{port}（{asr_core.device_summary(device)}）")
+
 
     try:
         server.serve_forever(poll_interval=0.5)
