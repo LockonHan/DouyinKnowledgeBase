@@ -1,10 +1,17 @@
 # 抖音数据（体积大/敏感，不入库）
 data/videos/
 data/audio/
-data/cookies.txt
+data/cookies*.txt
 data/*.html
 data/*.json
 data/*.log
 
 # 工具运行日志
 tools/*.log
+
+# Python 缓存
+__pycache__/
+*.pyc
+
+# WPS Comate 快照目录（外部工具生成，勿入库）
+/[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]/

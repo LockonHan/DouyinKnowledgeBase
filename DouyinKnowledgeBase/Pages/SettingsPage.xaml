@@ -24,6 +24,7 @@
                 <TextBlock Text="设置" Style="{StaticResource TitleTextBlockStyle}" VerticalAlignment="Center" />
             </StackPanel>
 
+            <!-- 大模型接入点 -->
             <TextBlock
                 Text="大模型接入点（OpenAI 兼容）"
                 Style="{StaticResource SubtitleTextBlockStyle}"
@@ -71,6 +72,49 @@
                     <TextBlock x:Name="TemperatureText" Text="0.7" VerticalAlignment="Center" MinWidth="32" />
                 </StackPanel>
             </StackPanel>
+
+            <!-- 视频下载与转写 -->
+            <TextBlock
+                Text="视频下载与转写"
+                Style="{StaticResource SubtitleTextBlockStyle}"
+                Margin="0,24,0,4" />
+
+            <TextBlock Text="粘贴抖音链接后，应用会调用本机 Python 执行下载、音频提取与本地 FunASR 转写。"
+                       TextWrapping="Wrap" Opacity="0.7" />
+
+            <StackPanel Spacing="4" Margin="0,12,0,0">
+                <TextBlock Text="Python 解释器路径（需已安装 funasr）" />
+                <TextBox
+                    x:Name="PythonPathBox"
+                    PlaceholderText="C:\Users\你\anaconda3\python.exe"
+                    AutomationProperties.Name="Python 解释器路径" />
+            </StackPanel>
+
+            <StackPanel Spacing="4">
+                <TextBlock Text="数据目录（存放 videos / audio / transcripts / cookies.txt）" />
+                <TextBox
+                    x:Name="DataDirBox"
+                    PlaceholderText="D:\project\Codex\抖音知识库\data"
+                    AutomationProperties.Name="数据目录" />
+            </StackPanel>
+
+            <StackPanel Spacing="4">
+                <TextBlock Text="转写设备" />
+                <ComboBox
+                    x:Name="DeviceBox"
+                    MinWidth="200"
+                    AutomationProperties.Name="转写设备">
+                    <ComboBoxItem Content="cuda:0" />
+                    <ComboBoxItem Content="cpu" />
+                </ComboBox>
+            </StackPanel>
+
+            <TextBlock
+                Text="提示：抖音下载依赖浏览器 Cookie。若下载失败，请以管理员身份运行 tools\export_cookies.py 重新导出。"
+                TextWrapping="Wrap"
+                Opacity="0.55"
+                FontSize="12"
+                Margin="0,4,0,0" />
 
             <StackPanel Orientation="Horizontal" Spacing="12" Margin="0,20,0,0">
                 <Button

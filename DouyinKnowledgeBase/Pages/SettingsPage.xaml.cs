@@ -5,11 +5,12 @@ using DouyinKnowledgeBase.Services;
 namespace DouyinKnowledgeBase.Pages;
 
 /// <summary>
-/// 大模型接入点配置页。
+/// 大模型接入点与视频管线配置页。
 /// </summary>
 public sealed partial class SettingsPage : Page
 {
     private readonly SettingsService _settingsService = new();
+    private readonly PipelineSettingsService _pipelineSettingsService = new();
     private readonly LlmClient _llmClient = new();
 
     public SettingsPage()
@@ -25,6 +26,32 @@ public sealed partial class SettingsPage : Page
         ApiKeyBox.Password = settings.ApiKey;
         ModelBox.Text = settings.Model;
         TemperatureSlider.Value = settings.Temperature;
+        TestButton.IsEnabled = true;
+
+        PipelineSettings pipeline = await _pipelineSettingsService.LoadAsync();
+        PythonPathBox.Text = pipeline.PythonPath;
+        DataDirBox.Text = pipeline.DataDir;
+        SelectDevice(pipeline.Device);
+    }
+
+    private void SelectDevice(string device)
+    {
+        if (string.IsNullOrWhiteSpace(device))
+        {
+            DeviceBox.SelectedIndex = 0;
+            return;
+        }
+
+        foreach (object item in DeviceBox.Items)
+        {
+            if (item is ComboBoxItem combo && string.Equals(combo.Content?.ToString(), device, StringComparison.OrdinalIgnoreCase))
+            {
+                DeviceBox.SelectedItem = combo;
+                return;
+            }
+        }
+
+        DeviceBox.SelectedIndex = 0;
     }
 
     private void BackButton_Click(object sender, RoutedEventArgs e)
@@ -52,6 +79,17 @@ public sealed partial class SettingsPage : Page
             ApiKey = ApiKeyBox.Password.Trim(),
             Model = ModelBox.Text.Trim(),
             Temperature = Math.Round(TemperatureSlider.Value, 1),
+        };
+    }
+
+    private PipelineSettings ReadPipelineSettings()
+    {
+        string device = (DeviceBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "cuda:0";
+        return new PipelineSettings
+        {
+            PythonPath = PythonPathBox.Text.Trim(),
+            DataDir = DataDirBox.Text.Trim(),
+            Device = device,
         };
     }
 
@@ -88,7 +126,21 @@ public sealed partial class SettingsPage : Page
             return;
         }
 
+        PipelineSettings pipeline = ReadPipelineSettings();
+        if (string.IsNullOrWhiteSpace(pipeline.PythonPath))
+        {
+            ShowStatus("请填写 Python 解释器路径（用于本地转写）。", InfoBarSeverity.Warning);
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(pipeline.DataDir))
+        {
+            ShowStatus("请填写数据目录。", InfoBarSeverity.Warning);
+            return;
+        }
+
         await _settingsService.SaveAsync(settings);
+        await _pipelineSettingsService.SaveAsync(pipeline);
         ShowStatus("配置已保存", InfoBarSeverity.Success);
     }
 
@@ -103,7 +155,7 @@ public sealed partial class SettingsPage : Page
 
         TestButton.IsEnabled = false;
         SaveButton.IsEnabled = false;
-        ShowStatus("正在测试连接…", InfoBarSeverity.Informational);
+        ShowStatus("正在测试连接……", InfoBarSeverity.Informational);
         try
         {
             string reply = await _llmClient.TestAsync(settings);

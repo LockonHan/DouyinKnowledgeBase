@@ -19,6 +19,11 @@ public sealed partial class MainPage : Page
         Frame.Navigate(typeof(SettingsPage));
     }
 
+    private void DownloadButton_Click(object sender, RoutedEventArgs e)
+    {
+        Frame.Navigate(typeof(DownloadPage));
+    }
+
     private void SummaryButton_Click(object sender, RoutedEventArgs e)
     {
         Frame.Navigate(typeof(SummaryPage));
