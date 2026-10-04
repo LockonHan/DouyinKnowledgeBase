@@ -12,6 +12,7 @@ public sealed partial class SettingsPage : Page
     private readonly SettingsService _settingsService = new();
     private readonly PipelineSettingsService _pipelineSettingsService = new();
     private readonly LlmClient _llmClient = new();
+    private readonly AsrServerManager _asrServer = App.AsrServer;
 
     public SettingsPage()
     {
@@ -31,6 +32,8 @@ public sealed partial class SettingsPage : Page
         PipelineSettings pipeline = await _pipelineSettingsService.LoadAsync();
         PythonPathBox.Text = pipeline.PythonPath;
         DataDirBox.Text = pipeline.DataDir;
+        ModelsDirBox.Text = pipeline.ModelsDir;
+        ResidentSwitch.IsOn = pipeline.AsrResident;
         SelectDevice(pipeline.Device);
     }
 
@@ -84,12 +87,14 @@ public sealed partial class SettingsPage : Page
 
     private PipelineSettings ReadPipelineSettings()
     {
-        string device = (DeviceBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "cuda:0";
+        string device = (DeviceBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "auto";
         return new PipelineSettings
         {
             PythonPath = PythonPathBox.Text.Trim(),
             DataDir = DataDirBox.Text.Trim(),
             Device = device,
+            ModelsDir = ModelsDirBox.Text.Trim(),
+            AsrResident = ResidentSwitch.IsOn,
         };
     }
 
@@ -141,6 +146,16 @@ public sealed partial class SettingsPage : Page
 
         await _settingsService.SaveAsync(settings);
         await _pipelineSettingsService.SaveAsync(pipeline);
+
+        // 按常驻开关启停转写服务。
+        if (pipeline.AsrResident)
+        {
+            _asrServer.Start(pipeline);
+            ShowStatus("配置已保存；常驻转写服务正在后台加载模型。", InfoBarSeverity.Success);
+            return;
+        }
+
+        _asrServer.Stop();
         ShowStatus("配置已保存", InfoBarSeverity.Success);
     }
 

@@ -104,13 +104,36 @@
                     x:Name="DeviceBox"
                     MinWidth="200"
                     AutomationProperties.Name="转写设备">
+                    <ComboBoxItem Content="auto" />
                     <ComboBoxItem Content="cuda:0" />
                     <ComboBoxItem Content="cpu" />
                 </ComboBox>
             </StackPanel>
 
+            <StackPanel Spacing="4">
+                <TextBlock Text="离线模型目录（可选；留空使用默认位置）" />
+                <TextBox
+                    x:Name="ModelsDirBox"
+                    PlaceholderText="D:\DouyinKnowledgeBase\runtime\models"
+                    AutomationProperties.Name="离线模型目录" />
+            </StackPanel>
+
+            <ToggleSwitch
+                x:Name="ResidentSwitch"
+                Header="常驻转写加速"
+                OnContent="已开启"
+                OffContent="已关闭"
+                Margin="0,4,0,0"
+                AutomationProperties.Name="常驻转写加速" />
+
             <TextBlock
-                Text="提示：抖音下载依赖浏览器 Cookie。若下载失败，请以管理员身份运行 tools\export_cookies.py 重新导出。"
+                Text="开启后转写模型常驻内存，后续转写无需重新加载（首次加载约 20-30 秒，常驻占用约 2 GB 内存 / 显存）。"
+                TextWrapping="Wrap"
+                Opacity="0.55"
+                FontSize="12" />
+
+            <TextBlock
+                Text="提示：抖音下载依赖浏览器 Cookie。若下载失败，可在下载页点“获取 / 刷新 Cookie”登录一次。"
                 TextWrapping="Wrap"
                 Opacity="0.55"
                 FontSize="12"

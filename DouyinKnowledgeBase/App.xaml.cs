@@ -1,18 +1,5 @@
-using Windows.ApplicationModel;
-using Windows.ApplicationModel.Activation;
-using Windows.Foundation;
-using Windows.Foundation.Collections;
 using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Controls.Primitives;
-using Microsoft.UI.Xaml.Data;
-using Microsoft.UI.Xaml.Input;
-using Microsoft.UI.Xaml.Media;
-using Microsoft.UI.Xaml.Navigation;
-using Microsoft.UI.Xaml.Shapes;
-
-// To learn more about WinUI, the WinUI project structure,
-// and more about our project templates, see: http://aka.ms/winui-project-info.
+using DouyinKnowledgeBase.Services;
 
 namespace DouyinKnowledgeBase;
 
@@ -25,6 +12,9 @@ public partial class App : Application
 
     /// <summary>主窗口实例，供文件选择器等需要窗口句柄的组件使用。</summary>
     public static Window? MainWindow { get; private set; }
+
+    /// <summary>常驻转写服务管理器（模型常驻，避免每次转写重复加载）。</summary>
+    public static AsrServerManager AsrServer { get; } = new();
 
     /// <summary>
     /// Initializes the singleton application object.  This is the first line of authored code
@@ -43,6 +33,28 @@ public partial class App : Application
     {
         _window = new MainWindow();
         MainWindow = _window;
+        _window.Closed += OnWindowClosed;
         _window.Activate();
+
+        _ = StartResidentServerAsync();
+    }
+
+    /// <summary>按配置在后台启动常驻转写服务（未开启时不做任何事）。</summary>
+    private static async Task StartResidentServerAsync()
+    {
+        try
+        {
+            PipelineSettings settings = await new PipelineSettingsService().LoadAsync();
+            AsrServer.Start(settings);
+        }
+        catch (Exception)
+        {
+            // 启动失败不影响主流程；转写时会自动回落到一次性模式。
+        }
+    }
+
+    private void OnWindowClosed(object sender, WindowEventArgs args)
+    {
+        AsrServer.Stop();
     }
 }

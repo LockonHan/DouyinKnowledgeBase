@@ -1,5 +1,4 @@
 using System.Text.Json;
-using Windows.Storage;
 
 namespace DouyinKnowledgeBase.Services;
 
@@ -10,19 +9,24 @@ public sealed class PipelineSettingsService
 {
     private const string FileName = "pipeline-settings.json";
 
+    public PipelineSettingsService()
+    {
+        AppPaths.MigrateLegacySettings(FileName);
+    }
+
+    private static string FilePath => Path.Combine(AppPaths.LocalDataDir, FileName);
+
     public async Task<PipelineSettings> LoadAsync()
     {
         PipelineSettings settings;
         try
         {
-            StorageFolder folder = ApplicationData.Current.LocalFolder;
-            StorageFile? file = await folder.TryGetItemAsync(FileName) as StorageFile;
-            if (file is null)
+            if (!File.Exists(FilePath))
             {
                 return CreateDefault();
             }
 
-            string json = await FileIO.ReadTextAsync(file);
+            string json = await File.ReadAllTextAsync(FilePath);
             settings = JsonSerializer.Deserialize<PipelineSettings>(json) ?? CreateDefault();
         }
         catch (Exception)
@@ -47,7 +51,7 @@ public sealed class PipelineSettingsService
 
         if (string.IsNullOrWhiteSpace(settings.Device))
         {
-            settings.Device = "cuda:0";
+            settings.Device = "auto";
         }
 
         return settings;
@@ -55,10 +59,8 @@ public sealed class PipelineSettingsService
 
     public async Task SaveAsync(PipelineSettings settings)
     {
-        StorageFolder folder = ApplicationData.Current.LocalFolder;
-        StorageFile file = await folder.CreateFileAsync(FileName, CreationCollisionOption.ReplaceExisting);
         string json = JsonSerializer.Serialize(settings, new JsonSerializerOptions { WriteIndented = true });
-        await FileIO.WriteTextAsync(file, json);
+        await File.WriteAllTextAsync(FilePath, json);
     }
 
     private static PipelineSettings CreateDefault()
@@ -67,7 +69,8 @@ public sealed class PipelineSettingsService
         {
             PythonPath = RepoLocator.DetectPython(),
             DataDir = RepoLocator.DefaultDataDir(),
-            Device = "cuda:0",
+            Device = "auto",
+            AsrResident = true,
         };
     }
 }

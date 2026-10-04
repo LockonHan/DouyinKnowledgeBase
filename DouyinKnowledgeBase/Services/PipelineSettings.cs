@@ -15,7 +15,15 @@ public sealed class PipelineSettings
     [JsonPropertyName("dataDir")]
     public string DataDir { get; set; } = "";
 
-    /// <summary>转写设备，例如 cuda:0 或 cpu。</summary>
+    /// <summary>转写设备：auto / cpu / cuda:0。</summary>
     [JsonPropertyName("device")]
-    public string Device { get; set; } = "cuda:0";
+    public string Device { get; set; } = "auto";
+
+    /// <summary>是否启用常驻转写加速（模型常驻内存，后续转写免加载）。</summary>
+    [JsonPropertyName("asrResident")]
+    public bool AsrResident { get; set; } = true;
+
+    /// <summary>离线模型目录（可选）；留空则使用内置/默认缓存目录。</summary>
+    [JsonPropertyName("modelsDir")]
+    public string ModelsDir { get; set; } = "";
 }

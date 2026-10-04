@@ -36,7 +36,7 @@ public sealed partial class CookiePage : Page
         _initialized = true;
         try
         {
-            string userDataFolder = Path.Combine(ApplicationData.Current.LocalFolder.Path, "WebView2");
+            string userDataFolder = Path.Combine(AppPaths.LocalDataDir, "WebView2");
             Directory.CreateDirectory(userDataFolder);
             CoreWebView2Environment environment = await CoreWebView2Environment.CreateWithOptionsAsync(null, userDataFolder, null);
             await Web.EnsureCoreWebView2Async(environment);

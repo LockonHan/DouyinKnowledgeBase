@@ -59,10 +59,26 @@ public sealed class VideoPipelineService
         psi.ArgumentList.Add(settings.DataDir);
         psi.ArgumentList.Add("--python");
         psi.ArgumentList.Add(settings.PythonPath);
-        if (!string.IsNullOrWhiteSpace(settings.Device))
+        psi.ArgumentList.Add("--device");
+        psi.ArgumentList.Add(string.IsNullOrWhiteSpace(settings.Device) ? "auto" : settings.Device);
+        psi.ArgumentList.Add("--asr");
+        psi.ArgumentList.Add(settings.AsrResident ? "auto" : "oneshot");
+        psi.ArgumentList.Add("--runtime-dir");
+        psi.ArgumentList.Add(AppPaths.RuntimeDir);
+
+        string? bundledFfmpeg = RepoLocator.BundledFfmpeg();
+        if (bundledFfmpeg is not null)
         {
-            psi.ArgumentList.Add("--device");
-            psi.ArgumentList.Add(settings.Device);
+            psi.ArgumentList.Add("--ffmpeg");
+            psi.ArgumentList.Add(bundledFfmpeg);
+        }
+
+        string modelsDir = !string.IsNullOrWhiteSpace(settings.ModelsDir) && Directory.Exists(settings.ModelsDir)
+            ? settings.ModelsDir
+            : RepoLocator.BundledModelsDir() ?? "";
+        if (modelsDir.Length > 0)
+        {
+            psi.Environment["MODELSCOPE_CACHE"] = modelsDir;
         }
 
         psi.Environment["PYTHONIOENCODING"] = "utf-8";
