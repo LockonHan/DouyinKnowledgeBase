@@ -14,7 +14,7 @@
 │   ├── python\              # 内置 CPython 3.11 + CPU 版 PyTorch + FunASR 工具链
 │   ├── bin\ffmpeg.exe       # 内置 ffmpeg（提取 16kHz 单声道音频）
 │   ├── models\              # 语音模型（首次运行时下载，约 2 GB）
-│   └── browsers\            # Playwright Chromium（首次运行时下载，约 150 MB）
+│   └── browsers\            # Playwright 无头内核（首次运行时下载，约 270 MB）
 ├── data\                    # 视频 / 音频 / 转写稿 / cookies.txt
 ├── 使用说明.txt
 └── 离线部署说明.md          # 离线部署（拷贝模型目录 + 指定离线路径）步骤
@@ -80,7 +80,8 @@ powershell -ExecutionPolicy Bypass -File packaging\build.ps1 -SkipPython -SkipPi
 3. 点击「开始准备环境」，向导按需执行：
    - PyTorch：CPU 版已内置；选 GPU 时从国内镜像下载 CUDA 版（约 2.5 GB）
    - 依赖：`funasr` / `modelscope` / `playwright` / `curl_cffi` / `sentencepiece==0.1.99`
-   - 浏览器：Playwright Chromium（约 150 MB）
+   - 浏览器：Playwright 无头内核 chromium-headless-shell（约 270 MB）
+     （只装无头内核；下载源按 国内镜像 → 官方源 依次重试，可用 PLAYWRIGHT_DOWNLOAD_HOST 覆盖）
    - 模型：Paraformer-large + VAD + 标点（约 2 GB，ModelScope 国内源，实测 ~37 MB/s）
 4. 自检通过后即可「粘贴链接 → 下载 → 转写 → AI 总结」
 
@@ -98,7 +99,9 @@ powershell -ExecutionPolicy Bypass -File packaging\build.ps1 -SkipPython -SkipPi
   Paraformer 使用 `tokens.json` 不受影响，但环境准备脚本仍会统一降到 `0.1.99`。
 - **CPU 与 GPU 共用同一套模型**（Paraformer-large + VAD + 标点），只差 PyTorch 运行时：
   CPU ≈ 200 MB / cu124 ≈ 2.5 GB，因此 GPU 版留到首次运行按需下载。
-- **模型缓存布局**：`MODELSCOPE_CACHE` 指向缓存根目录，模型位于其下 `models\iic\<仓库名>`。
+- **模型缓存布局**：`MODELSCOPE_CACHE` 指向缓存根目录。同时兼容两种布局：
+  旧版 `models\iic\<仓库名>` 与新版（ModelScope 1.4x / HF 风格）`models\iic--<仓库名>\snapshots\<rev>`；
+  以是否存在已完成的权重文件（`model.pt` 等，排除 `*.incomplete`）判定是否就绪。
   手动指定目录时会自动兼容「指向 `models` 子目录」的写法。
 - 下载源均为国内地址：ModelScope（模型）、清华 TUNA / 阿里云（pip）、华为云 / npmmirror（Python）、
   SJTU / 阿里云 / 官方（CUDA 版 PyTorch，三级回退）。
@@ -112,7 +115,7 @@ powershell -ExecutionPolicy Bypass -File packaging\build.ps1 -SkipPython -SkipPi
 | 内置 Python + CPU torch + 依赖 | ~1.2 GB | 安装包主要体积 |
 | ffmpeg | ~80 MB | 单个静态可执行文件 |
 | 模型（首次运行下载） | ~2.0 GB | 不进入安装包 |
-| Playwright Chromium（首次运行下载） | ~150 MB | 不进入安装包 |
+| Playwright 无头内核（首次运行下载） | ~270 MB | 不进入安装包 |
 
 安装包（LZMA2 压缩）预计 **~600 MB ~ 1 GB**；首次运行下载模型约需 1~3 分钟（视网速）。
 

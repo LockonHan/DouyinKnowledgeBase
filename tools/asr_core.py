@@ -41,17 +41,88 @@ def device_summary(device: str) -> str:
     return device
 
 
+WEIGHT_MARKERS = ("model.pt", "model.pth", "model.pb", "model.bin")
+
+
+def models_cache_roots() -> list:
+    """可能的 ModelScope 缓存根目录（含用户显式指定的）。"""
+    roots = []
+    for env_name in ("MODELSCOPE_CACHE", "MODELSCOPE_CACHE_DIR"):
+        value = (os.environ.get(env_name) or "").strip()
+        if not value:
+            continue
+        roots.append(os.path.abspath(value))
+        norm = os.path.normpath(value)
+        if os.path.basename(norm).lower() == "models":
+            roots.append(os.path.dirname(norm))
+    roots.append(os.path.expanduser(os.path.join("~", ".cache", "modelscope", "hub")))
+    unique = []
+    for root in roots:
+        if root and root not in unique:
+            unique.append(root)
+    return unique
+
+
+def _dir_has_weights(path: str) -> bool:
+    try:
+        entries = os.listdir(path)
+    except OSError:
+        return False
+    for entry in entries:
+        low = entry.lower()
+        if low.endswith(".incomplete") or low.endswith(".tmp") or low.endswith(".part"):
+            continue
+        if entry in WEIGHT_MARKERS or low.endswith(".safetensors"):
+            return True
+    return False
+
+
+def resolve_model_path(model_id: str) -> str:
+    """把 "iic/<name>" 解析为本地模型目录，兼容新旧 ModelScope 缓存布局。
+
+    旧版布局：<cache>/models/iic/<name>
+    新版布局（HF 风格）：<cache>/models/iic--<name>/snapshots/<revision>
+
+    解析不到时原样返回，交给 FunASR / ModelScope 自行定位或下载，
+    这样离线与联网两种场景都能工作。
+    """
+    if not model_id or os.path.isdir(model_id) or "/" not in model_id:
+        return model_id
+    name = model_id.split("/")[-1]
+    for root in models_cache_roots():
+        candidates = [
+            os.path.join(root, "models", "iic", name),
+            os.path.join(root, "iic", name),
+        ]
+        for parent in (os.path.join(root, "models", "iic--" + name),
+                       os.path.join(root, "iic--" + name)):
+            candidates.append(parent)
+            snapshots = os.path.join(parent, "snapshots")
+            if os.path.isdir(snapshots):
+                try:
+                    for rev in sorted(os.listdir(snapshots)):
+                        candidates.append(os.path.join(snapshots, rev))
+                except OSError:
+                    pass
+        for candidate in candidates:
+            if _dir_has_weights(candidate):
+                return candidate
+    return model_id
+
+
 def load_model(device, dtype="fp32", model=None, vad=None, punc=None, log=print):
     """加载 ASR + VAD + 标点模型，返回 AutoModel 实例。"""
     from funasr import AutoModel
 
-    model = model or DEFAULT_MODEL
+    model = resolve_model_path(model or DEFAULT_MODEL)
+    model_vad = resolve_model_path(vad or DEFAULT_VAD)
+    model_punc = resolve_model_path(punc or DEFAULT_PUNC)
     log(f"loading FunASR: model={model} device={device} dtype={dtype}")
     t0 = time.time()
     instance = AutoModel(
         model=model,
-        vad_model=vad or DEFAULT_VAD,
-        punc_model=punc or DEFAULT_PUNC,
+        vad_model=model_vad,
+        punc_model=model_punc,
         device=device,
         dtype=dtype,
         disable_update=True,

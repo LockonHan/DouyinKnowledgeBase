@@ -361,8 +361,10 @@ $readme = @"
 1. 双击 app\DouyinKnowledgeBase.exe 启动应用。
 2. 首次使用请点击主页的「环境准备」：
    - 检测到 NVIDIA 显卡时，会询问使用 GPU 加速还是仅 CPU；
-   - 按需下载 PyTorch（CPU 版已内置，GPU 版约 2.5 GB）与语音模型（约 2 GB）；
-   - 下载源为国内镜像（ModelScope / 清华 TUNA / 华为云），支持断点与重试。
+   - 按需下载 PyTorch（CPU 版已内置，GPU 版约 2.5 GB）、语音模型（约 2 GB）
+     与 Playwright 无头内核（约 270 MB）；
+   - 下载源为国内镜像（ModelScope / 清华 TUNA / 华为云 / npmmirror），支持断点与重试；
+     浏览器下载失败会自动切换镜像，也可用 PLAYWRIGHT_DOWNLOAD_HOST 指定。
 3. 若本机已有模型或需要离线部署，可在「环境准备」里手动指定模型目录，
    应用会直接复用其中的模型；详细步骤见同目录下的《离线部署说明.md》。
 4. 在「设置」中配置大模型接入点（OpenAI 兼容），即可把转写稿总结成知识文章。

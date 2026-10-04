@@ -143,38 +143,93 @@ def model_root(models_dir: str) -> str:
     return os.path.join(models_dir, "models", "iic") if models_dir else ""
 
 
+WEIGHT_MARKERS = ("model.pt", "model.pth", "model.pb", "model.bin")
+
+
+def _cache_roots(models_dir: str) -> list:
+    """缓存根候选；用户可能直接指向了根下的 models 目录。"""
+    if not models_dir:
+        return []
+    roots = [models_dir]
+    norm = os.path.normpath(models_dir)
+    if os.path.basename(norm).lower() == "models":
+        roots.append(os.path.dirname(norm))
+    return roots
+
+
+def model_candidates(models_dir: str, name: str) -> list:
+    """某模型在所有已知布局下的候选目录。
+
+    旧版 ModelScope：<cache>/models/iic/<name>、<cache>/iic/<name>
+    新版 ModelScope（HF 风格）：<cache>/models/iic--<name>/snapshots/<revision>
+    """
+    candidates = []
+    for root in _cache_roots(models_dir):
+        candidates.append(os.path.join(root, "models", "iic", name))
+        candidates.append(os.path.join(root, "iic", name))
+        for parent in (os.path.join(root, "models", "iic--" + name),
+                       os.path.join(root, "iic--" + name)):
+            candidates.append(parent)
+            snapshots = os.path.join(parent, "snapshots")
+            if os.path.isdir(snapshots):
+                try:
+                    for rev in sorted(os.listdir(snapshots)):
+                        candidates.append(os.path.join(snapshots, rev))
+                except OSError:
+                    pass
+    return candidates
+
+
+def dir_has_weights(path: str) -> bool:
+    """目录内存在已完成的权重文件才算就绪（排除 *.incomplete 等中断残留）。"""
+    try:
+        entries = os.listdir(path)
+    except OSError:
+        return False
+    for entry in entries:
+        low = entry.lower()
+        if low.endswith(".incomplete") or low.endswith(".tmp") or low.endswith(".part"):
+            continue
+        if entry in WEIGHT_MARKERS or low.endswith(".safetensors"):
+            return True
+    return False
+
+
+def find_model_dir(models_dir: str, name: str):
+    """返回已就绪的模型目录；找不到返回 None。"""
+    for candidate in model_candidates(models_dir, name):
+        if dir_has_weights(candidate):
+            return candidate
+    return None
+
+
 def installed_models(models_dir: str) -> dict:
-    """返回 {模型键: 是否存在}；兼容 <dir>/models/iic 与 <dir>/iic 两种布局。"""
+    """返回 {模型键: 是否已就绪}；兼容新旧两种 ModelScope 缓存布局。"""
     result = {}
-    roots = []
-    if models_dir:
-        roots = [model_root(models_dir), os.path.join(models_dir, "iic")]
     for key, model_id in MODEL_IDS.items():
         name = model_id.split("/")[-1]
-        found = False
-        for root in roots:
-            candidate = os.path.join(root, name)
-            if os.path.isdir(candidate) and os.listdir(candidate):
-                found = True
-                break
-        result[key] = found
+        result[key] = find_model_dir(models_dir, name) is not None
     return result
 
 
 def chromium_present(exe: str, env) -> bool:
+    """真实启动一次无头浏览器来判定可用性。
+
+    仅检查可执行文件是否存在会漏判：Playwright 1.49+ 的无头模式默认使用独立的
+    chromium-headless-shell，只装完整版 Chromium 时依然无法启动。
+    """
     code = (
         "from playwright.sync_api import sync_playwright\n"
         "with sync_playwright() as p:\n"
-        "    print(p.chromium.executable_path)\n"
+        "    print('EXE:' + p.chromium.executable_path)\n"
+        "    b = p.chromium.launch()\n"
+        "    print('LAUNCH_OK:' + b.version)\n"
+        "    b.close()\n"
     )
-    rc, out = python_of(exe, code, env=env, timeout=90)
+    rc, out = python_of(exe, code, env=env, timeout=240)
     if rc != 0:
         return False
-    for line in reversed(out.strip().splitlines()):
-        path = line.strip()
-        if path and os.path.isfile(path):
-            return True
-    return False
+    return "LAUNCH_OK:" in (out or "")
 
 
 def default_models_cache() -> str:
@@ -386,23 +441,70 @@ def install_deps(args, exe, env) -> bool:
     return False
 
 
+# Playwright 1.63 起 Chromium 走 CFT 布局，官方 cdn.playwright.dev 在国内常超时。
+# 依次尝试国内镜像，最后回退官方源。
+BROWSER_DOWNLOAD_HOSTS = [
+    "https://cdn.npmmirror.com/binaries/playwright",
+    "https://registry.npmmirror.com/-/binary/playwright",
+    "",
+]
+
+# 应用只用无头模式下载视频，因此优先只装无头内核（约 270 MB，省掉 430 MB 完整版）；
+# 若启动探测失败，再兜底安装完整版 + 无头内核。
+BROWSER_TARGET_SETS = [
+    ["chromium-headless-shell"],
+    ["chromium", "chromium-headless-shell"],
+]
+
+
+def _install_browser_targets(exe, env, host, targets, start, end) -> bool:
+    attempt = dict(env)
+    attempt["PLAYWRIGHT_DOWNLOAD_CONNECTION_TIMEOUT"] = "60000"
+    if host:
+        attempt["PLAYWRIGHT_DOWNLOAD_HOST"] = host
+    for target in targets:
+        code = (
+            "import subprocess,sys\n"
+            "sys.exit(subprocess.call([sys.executable,'-m','playwright','install',%r]))\n" % target
+        )
+        with _Heartbeat("browser", start + 2, end - 2, "下载 Playwright " + target):
+            rc, out = python_of(exe, code, env=attempt, timeout=3600)
+        if rc != 0:
+            return False
+    return True
+
+
 def install_browser(args, exe, env) -> bool:
     start, end = STEP_RANGES["browser"]
     if chromium_present(exe, env):
-        emit("browser", end, "Playwright 浏览器已就绪，跳过")
+        emit("browser", end, "Playwright 浏览器已就绪（启动探测通过），跳过")
         return True
 
-    emit("browser", start + 1, "正在下载 Playwright Chromium（约 150 MB）…")
-    code = (
-        "import subprocess,sys\n"
-        "sys.exit(subprocess.call([sys.executable,'-m','playwright','install','chromium']))\n"
-    )
-    with _Heartbeat("browser", start + 2, end - 2, "下载 Playwright Chromium"):
-        rc, out = python_of(exe, code, env=env, timeout=3600)
-    if rc == 0:
-        emit("browser", end, "Playwright Chromium 下载完成")
-        return True
-    emit("browser", end, "Playwright Chromium 下载失败：" + out.strip()[-300:], level="error")
+    hosts = []
+    explicit = (os.environ.get("PLAYWRIGHT_DOWNLOAD_HOST") or "").strip()
+    for host in ([explicit] if explicit else []) + BROWSER_DOWNLOAD_HOSTS:
+        if host not in hosts:
+            hosts.append(host)
+
+    # 首个源先试「仅无头内核」，其余情况一律装完整版。
+    attempts = []
+    for index, host in enumerate(hosts):
+        if index == 0:
+            attempts.append((host, BROWSER_TARGET_SETS[0]))
+        attempts.append((host, BROWSER_TARGET_SETS[-1]))
+
+    for host, targets in attempts:
+        label = host or "Playwright 官方源"
+        emit("browser", start + 1, "正在下载 Playwright 浏览器（%s：%s）…" % (label, "+".join(targets)))
+        if not _install_browser_targets(exe, env, host, targets, start, end):
+            emit("browser", start + 2, "%s 下载失败，改用下一个源…" % label, level="warn")
+            continue
+        if chromium_present(exe, env):
+            emit("browser", end, "Playwright 浏览器下载完成（启动探测通过）")
+            return True
+        emit("browser", start + 2, "%s 下载完成但启动探测失败，改用完整版重试…" % label, level="warn")
+
+    emit("browser", end, "Playwright 浏览器安装失败：所有下载源均未成功。", level="error")
     return False
 
 

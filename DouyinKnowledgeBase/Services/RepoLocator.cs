@@ -211,28 +211,103 @@ public static class RepoLocator
         "punc_ct-transformer_cn-en-common-vocab471067-large",
     };
 
-    /// <summary>判断给定 ModelScope 缓存根目录下是否已包含全部所需模型。</summary>
-    public static bool HasAllModels(string? cacheRoot)
+    /// <summary>模型权重文件名（用于判定模型是否真正下载完成）。</summary>
+    private static readonly string[] ModelWeightMarkers =
     {
-        if (string.IsNullOrWhiteSpace(cacheRoot) || !Directory.Exists(cacheRoot))
+        "model.pt", "model.pth", "model.pb", "model.bin",
+    };
+
+    /// <summary>
+    /// 枚举某模型在所有已知布局下的候选目录。
+    /// 旧版 ModelScope：&lt;cache&gt;\models\iic\&lt;name&gt;、&lt;cache&gt;\iic\&lt;name&gt;
+    /// 新版 ModelScope（HF 风格）：&lt;cache&gt;\models\iic--&lt;name&gt;\snapshots\&lt;revision&gt;
+    /// </summary>
+    private static IEnumerable<string> ModelCandidates(string? cacheRoot, string modelName)
+    {
+        if (string.IsNullOrWhiteSpace(cacheRoot))
+        {
+            yield break;
+        }
+
+        List<string> roots = new() { cacheRoot };
+        string norm = cacheRoot.TrimEnd('\\', '/');
+        if (string.Equals(Path.GetFileName(norm), "models", StringComparison.OrdinalIgnoreCase))
+        {
+            string? parent = Path.GetDirectoryName(norm);
+            if (!string.IsNullOrEmpty(parent))
+            {
+                roots.Add(parent);
+            }
+        }
+
+        foreach (string root in roots)
+        {
+            yield return Path.Combine(root, "models", "iic", modelName);
+            yield return Path.Combine(root, "iic", modelName);
+            yield return Path.Combine(root, "models", "iic--" + modelName);
+            yield return Path.Combine(root, "iic--" + modelName);
+
+            string[] parents =
+            {
+                Path.Combine(root, "models", "iic--" + modelName),
+                Path.Combine(root, "iic--" + modelName),
+            };
+            foreach (string parent in parents)
+            {
+                string snapshots = Path.Combine(parent, "snapshots");
+                if (!Directory.Exists(snapshots))
+                {
+                    continue;
+                }
+
+                string[] revisions;
+                try
+                {
+                    revisions = Directory.GetDirectories(snapshots);
+                }
+                catch (Exception)
+                {
+                    continue;
+                }
+
+                Array.Sort(revisions, StringComparer.Ordinal);
+                foreach (string revision in revisions)
+                {
+                    yield return revision;
+                }
+            }
+        }
+    }
+
+    /// <summary>目录内是否存在已完成的权重文件（排除 *.incomplete 等中断残留）。</summary>
+    private static bool HasModelWeights(string dir)
+    {
+        if (!Directory.Exists(dir))
         {
             return false;
         }
 
-        string[] roots =
+        string[] entries;
+        try
         {
-            Path.Combine(cacheRoot, "models", "iic"),
-            Path.Combine(cacheRoot, "iic"),
-        };
+            entries = Directory.GetFileSystemEntries(dir);
+        }
+        catch (Exception)
+        {
+            return false;
+        }
 
-        foreach (string root in roots)
+        foreach (string entry in entries)
         {
-            if (!Directory.Exists(root))
+            string name = Path.GetFileName(entry);
+            string low = name.ToLowerInvariant();
+            if (low.EndsWith(".incomplete") || low.EndsWith(".tmp") || low.EndsWith(".part"))
             {
                 continue;
             }
 
-            if (RequiredModels.All(model => Directory.Exists(Path.Combine(root, model))))
+            if (ModelWeightMarkers.Contains(name, StringComparer.OrdinalIgnoreCase) ||
+                low.EndsWith(".safetensors"))
             {
                 return true;
             }
@@ -241,20 +316,38 @@ public static class RepoLocator
         return false;
     }
 
+    /// <summary>返回已就绪的模型目录；未找到返回 null。兼容新旧两种 ModelScope 缓存布局。</summary>
+    public static string? FindModelDir(string? cacheRoot, string modelName)
+    {
+        foreach (string candidate in ModelCandidates(cacheRoot, modelName))
+        {
+            if (HasModelWeights(candidate))
+            {
+                return candidate;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>判断给定 ModelScope 缓存根目录下是否已包含全部所需模型。</summary>
+    public static bool HasAllModels(string? cacheRoot)
+    {
+        if (string.IsNullOrWhiteSpace(cacheRoot))
+        {
+            return false;
+        }
+
+        return RequiredModels.All(model => FindModelDir(cacheRoot, model) is not null);
+    }
+
     /// <summary>列出缺失的模型仓库名。</summary>
     public static IReadOnlyList<string> MissingModels(string? cacheRoot)
     {
-        string[] roots =
-        {
-            Path.Combine(cacheRoot ?? "", "models", "iic"),
-            Path.Combine(cacheRoot ?? "", "iic"),
-        };
-
         List<string> missing = new();
         foreach (string model in RequiredModels)
         {
-            bool found = roots.Any(root => Directory.Exists(Path.Combine(root, model)));
-            if (!found)
+            if (FindModelDir(cacheRoot, model) is null)
             {
                 missing.Add(model);
             }
@@ -262,8 +355,6 @@ public static class RepoLocator
 
         return missing;
     }
-
-    /// <summary>
     /// 解析实际使用的 ModelScope 缓存根目录：优先“已包含全部模型”的目录
     /// （用户指定 → 内置目录 → 本机默认缓存），避免重复下载。
     /// 都没有时回落到内置目录；返回空字符串表示交给 ModelScope 使用默认位置。
