@@ -1,20 +1,21 @@
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-
-// To learn more about WinUI, the WinUI project structure,
-// and more about our project templates, see: http://aka.ms/winui-project-info.
+using DouyinKnowledgeBase.Pages;
 
 namespace DouyinKnowledgeBase;
 
 /// <summary>
-/// The main content page displayed inside the application window.
-/// Add your UI logic, event handlers, and data binding here.
+/// 应用主页面：后续在此展示已收藏的视频列表与处理状态。
 /// </summary>
 public sealed partial class MainPage : Page
 {
     public MainPage()
     {
         InitializeComponent();
+    }
 
-        // TODO: Add your initialization logic here.
+    private void SettingsButton_Click(object sender, RoutedEventArgs e)
+    {
+        Frame.Navigate(typeof(SettingsPage));
     }
 }
