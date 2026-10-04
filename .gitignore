@@ -1,10 +1,5 @@
-# 抖音数据（体积大/敏感，不入库）
-data/videos/
-data/audio/
-data/cookies*
-data/*.html
-data/*.json
-data/*.log
+# 抖音数据（视频/音频/转写稿/cookies 等，整个目录不入库）
+data/
 
 # 工具运行日志
 tools/*.log

@@ -1,1 +1,0 @@
-{"host": "127.0.0.1", "port": 63752, "token": "Hx_PLMy2kBm-BjgYdhZTgB7_5b6v21bb", "pid": 5472, "device": "cuda:0", "model": "iic/speech_paraformer-large-vad-punc_asr_nat-zh-cn-16k-common-vocab8404-pytorch", "started": 1791110678.5363846}
