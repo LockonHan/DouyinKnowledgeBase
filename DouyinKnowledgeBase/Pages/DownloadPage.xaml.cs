@@ -148,6 +148,11 @@ public sealed partial class DownloadPage : Page
         }
     }
 
+    private void CookieButton_Click(object sender, RoutedEventArgs e)
+    {
+        Frame.Navigate(typeof(CookiePage));
+    }
+
     private void SummarizeButton_Click(object sender, RoutedEventArgs e)
     {
         if (!string.IsNullOrWhiteSpace(_transcriptPath) && File.Exists(_transcriptPath))

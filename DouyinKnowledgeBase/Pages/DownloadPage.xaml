@@ -31,7 +31,7 @@
 
             <TextBlock
                 x:Name="CookieHintText"
-                Text="提示：抖音下载需要浏览器 Cookie。若下载失败，请以管理员身份运行 tools\export_cookies.py 重新导出。"
+                Text="提示：抖音下载需要 Cookie（含 msToken）。可点击下方“获取/刷新 Cookie”，在应用内打开抖音自动获取。"
                 TextWrapping="Wrap"
                 Opacity="0.55"
                 FontSize="12"
@@ -57,6 +57,10 @@
                     x:Name="ClearButton"
                     Click="ClearButton_Click"
                     Content="清空" />
+                <Button
+                    x:Name="CookieButton"
+                    Click="CookieButton_Click"
+                    Content="获取/刷新 Cookie" />
             </StackPanel>
 
             <ProgressBar

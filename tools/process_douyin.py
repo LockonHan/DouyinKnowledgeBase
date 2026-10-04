@@ -5,6 +5,9 @@
         [--cookies <cookies.txt>] [--device cuda:0]
         [--ytdlp <yt-dlp 可执行文件>] [--ffmpeg <ffmpeg 可执行文件>]
 
+下载默认走无头浏览器方案（tools/douyin_download.py），用于绕过抖音网页接口的
+签名校验；若浏览器方案失败且本机存在 yt-dlp，则回退到 yt-dlp。
+
 进度通过 stdout 上以 @@PROG@@ 为前缀的 JSON 行输出，供宿主程序解析：
     @@PROG@@ {"stage": "download", "percent": 42, "message": "..."}
 """
@@ -16,10 +19,10 @@ import re
 import shutil
 import subprocess
 import sys
-import time
+
+import douyin_download
 
 PREFIX = "@@PROG@@"
-URL_RE = re.compile(r"https?://[^\s，,、；;（）()【】\[\]\"'<>]+")
 PERCENT_RE = re.compile(r"\[download\]\s+(\d+(?:\.\d+)?)%")
 
 
@@ -34,14 +37,6 @@ def fail(message):
     sys.exit(1)
 
 
-def extract_url(text):
-    candidates = URL_RE.findall(text or "")
-    for url in candidates:
-        if "douyin.com" in url:
-            return url.rstrip("/") + "/"
-    return candidates[0].rstrip("/") + "/" if candidates else None
-
-
 def which(name, override):
     if override:
         return override
@@ -52,7 +47,7 @@ def which(name, override):
 
 
 def stream(cmd):
-    """运行子进程并逐行回传输出，返回退出码。"""
+    """运行子进程并逐行回传输出。首行 line 为 None，便于调用方先取到 proc。"""
     proc = subprocess.Popen(
         cmd,
         stdout=subprocess.PIPE,
@@ -62,12 +57,13 @@ def stream(cmd):
         errors="replace",
         bufsize=1,
     )
+    yield proc, None
     for line in proc.stdout:
         yield proc, line.rstrip("\r\n")
     proc.wait()
 
 
-def download(ytdlp, url, out_template, cookies, videos_dir):
+def download_ytdlp(ytdlp, url, out_template, cookies, videos_dir):
     cmd = [
         ytdlp, "--no-playlist", "--newline", "--no-warnings",
         "--no-simulate", "--print", "after_move:filepath",
@@ -82,9 +78,11 @@ def download(ytdlp, url, out_template, cookies, videos_dir):
         cmd += ["--cookies", tmp_cookies]
     cmd.append(url)
 
-    emit(stage="download", percent=0, message="正在解析视频地址…")
+    emit(stage="download", percent=0, message="正在用 yt-dlp 解析视频地址…")
     printed_path = None
     for proc, line in stream(cmd):
+        if not line:
+            continue
         m = PERCENT_RE.search(line)
         if m:
             emit(stage="download", percent=float(m.group(1)), message=line[:160])
@@ -94,10 +92,10 @@ def download(ytdlp, url, out_template, cookies, videos_dir):
             emit(stage="download", message=line[:200])
 
     if proc.returncode != 0:
-        fail(f"下载失败（yt-dlp 退出码 {proc.returncode}）。若是抖音风控，请先以管理员运行 tools/export_cookies.py 导出 Cookie。")
+        fail(f"下载失败（yt-dlp 退出码 {proc.returncode}）。")
 
     if printed_path and os.path.isfile(printed_path):
-        return printed_path
+        return printed_path, None
 
     if not os.path.isdir(videos_dir):
         fail("下载目录不存在。")
@@ -105,7 +103,23 @@ def download(ytdlp, url, out_template, cookies, videos_dir):
     media = [f for f in files if os.path.splitext(f)[1].lower() in (".mp4", ".mkv", ".webm", ".m4a")]
     if not media:
         fail("未找到下载的视频文件。")
-    return max(media, key=os.path.getmtime)
+    newest = max(media, key=os.path.getmtime)
+    return newest, os.path.splitext(os.path.basename(newest))[0]
+
+
+def download(url, videos_dir, cookies, ytdlp_override):
+    """优先用无头浏览器直取带音轨的 MP4 直链，失败再回退 yt-dlp。"""
+    try:
+        return douyin_download.download(url, videos_dir, emit, cookies=cookies)
+    except douyin_download.DownloadError as exc:
+        emit(stage="download", percent=-1,
+             message=f"浏览器下载未成功：{exc} 尝试回退到 yt-dlp…")
+
+    ytdlp = ytdlp_override or shutil.which("yt-dlp")
+    if not ytdlp:
+        fail("浏览器下载失败，且本机未安装 yt-dlp，无法回退。请检查网络后重试。")
+    out_template = os.path.join(videos_dir, "%(title)s.%(ext)s")
+    return download_ytdlp(ytdlp, url, out_template, cookies, videos_dir)
 
 
 def extract_audio(ffmpeg, video, wav):
@@ -151,24 +165,21 @@ def main():
         os.makedirs(d, exist_ok=True)
 
     emit(stage="parse", percent=-1, message="正在从分享文案中提取链接…")
-    url = extract_url(args.share)
+    url = douyin_download.extract_url(args.share)
     if not url:
         fail("没有找到有效的抖音链接，请确认分享文案中包含 https://v.douyin.com/... 之类的地址。")
     emit(stage="parse", percent=100, message=f"已识别链接：{url}")
 
-    ytdlp = which("yt-dlp", args.ytdlp)
     ffmpeg = which("ffmpeg", args.ffmpeg)
     python_exe = args.python or sys.executable
     script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "transcribe_funasr.py")
 
     cookies = args.cookies or os.path.join(data_dir, "cookies.txt")
-    if not os.path.isfile(cookies):
-        emit(stage="download", percent=-1, message="提示：未找到 cookies.txt，若下载失败请先导出抖音 Cookie。")
 
-    out_template = os.path.join(videos_dir, "%(title)s.%(ext)s")
-    video = download(ytdlp, url, out_template, cookies, videos_dir)
-    title = os.path.splitext(os.path.basename(video))[0]
-    emit(stage="download", percent=100, title=title, video=video, message=f"下载完成：{os.path.basename(video)}")
+    video, forced_title = download(url, videos_dir, cookies, args.ytdlp)
+    title = forced_title or os.path.splitext(os.path.basename(video))[0]
+    emit(stage="download", percent=100, title=title, video=video,
+         message=f"下载完成：{os.path.basename(video)}")
 
     wav = os.path.join(audio_dir, title + ".wav")
     extract_audio(ffmpeg, video, wav)
@@ -176,7 +187,6 @@ def main():
 
     out_base = os.path.join(transcripts_dir, title)
     txt = transcribe(python_exe, script, wav, out_base, args.device)
-    size = os.path.getsize(txt)
     emit(stage="transcribe", percent=100, message=f"转写完成：{os.path.getsize(txt)} 字节")
 
     emit(stage="done", percent=100, title=title, video=video, audio=wav,
