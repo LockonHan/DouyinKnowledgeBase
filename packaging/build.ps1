@@ -364,7 +364,7 @@ $readme = @"
    - 按需下载 PyTorch（CPU 版已内置，GPU 版约 2.5 GB）与语音模型（约 2 GB）；
    - 下载源为国内镜像（ModelScope / 清华 TUNA / 华为云），支持断点与重试。
 3. 若本机已有模型或需要离线部署，可在「环境准备」里手动指定模型目录，
-   应用会直接复用其中的模型。
+   应用会直接复用其中的模型；详细步骤见同目录下的《离线部署说明.md》。
 4. 在「设置」中配置大模型接入点（OpenAI 兼容），即可把转写稿总结成知识文章。
 
 目录说明
@@ -380,6 +380,13 @@ data\                下载的视频、音频与转写稿
 卸载不会删除 data\ 与 runtime\models\ 中的内容，如需彻底清理请手动删除。
 "@
 [System.IO.File]::WriteAllText((Join-Path $OutDir '使用说明.txt'), $readme, (New-Object System.Text.UTF8Encoding($false)))
+
+# 离线部署指南（随包分发）
+$offlineDoc = Join-Path $PackagingDir '离线部署说明.md'
+if (Test-Path -LiteralPath $offlineDoc) {
+    Copy-Item -LiteralPath $offlineDoc -Destination (Join-Path $OutDir '离线部署说明.md') -Force
+    Write-Info '已内置 离线部署说明.md'
+}
 
 # ---------------------------------------------------------------------------
 # 7. 汇总

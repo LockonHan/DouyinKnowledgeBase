@@ -16,7 +16,8 @@
 │   ├── models\              # 语音模型（首次运行时下载，约 2 GB）
 │   └── browsers\            # Playwright Chromium（首次运行时下载，约 150 MB）
 ├── data\                    # 视频 / 音频 / 转写稿 / cookies.txt
-└── 使用说明.txt
+├── 使用说明.txt
+└── 离线部署说明.md          # 离线部署（拷贝模型目录 + 指定离线路径）步骤
 ```
 
 `RepoLocator` 会从 `app\` 逐级向上查找 `tools\process_douyin.py`，因此安装目录整体可移动。
@@ -85,6 +86,11 @@ powershell -ExecutionPolicy Bypass -File packaging\build.ps1 -SkipPython -SkipPi
 
 「环境准备」可重复执行，已就绪的项目会自动跳过；也可在页面中**手动指定离线模型目录**，
 若其中已包含所需模型则直接复用。
+
+## 离线部署
+
+目标电脑不能联网时，可先在联网机器上准备好语音模型与 Playwright 浏览器，拷贝到目标机复用。
+完整步骤（目录结构、指定离线路径、浏览器拷贝、常见问题）见 [离线部署说明.md](离线部署说明.md)。
 
 ## 关键约束
 
