@@ -62,6 +62,8 @@ Name: "{group}\卸载 {#AppName}"; Filename: "{uninstallexe}"
 Name: "{autodesktop}\{#AppName}"; Filename: "{app}\app\{#AppExeName}"; Tasks: desktopicon
 
 [Run]
+; 应用内登录抖音需要 WebView2 运行时；仅在缺失时静默安装（引导程序已随包内置，免管理员）。
+Filename: "{app}\runtime\bin\webview2\MicrosoftEdgeWebview2Setup.exe"; Parameters: "/silent /install"; StatusMsg: "正在安装 WebView2 运行时（应用内登录抖音所需）..."; Flags: waituntilterminated skipifdoesntexist; Check: WebView2Missing
 Filename: "{app}\app\{#AppExeName}"; Description: "启动{#AppName}"; Flags: nowait postinstall skipifsilent; Tasks: launchapp
 
 [UninstallDelete]
@@ -70,3 +72,18 @@ Type: filesandordirs; Name: "{app}\tools"
 Type: filesandordirs; Name: "{app}\runtime\python"
 Type: filesandordirs; Name: "{app}\runtime\bin"
 Type: filesandordirs; Name: "{app}\runtime\browsers"
+
+[Code]
+{ 检测 WebView2 运行时是否已安装（按机器 / 按用户两种安装位置）。 }
+function WebView2Missing: Boolean;
+var
+  Version: String;
+begin
+  Result := True;
+  if RegQueryStringValue(HKLM, 'SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}', 'pv', Version) and (Version <> '') then
+    Result := False
+  else if RegQueryStringValue(HKLM, 'SOFTWARE\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}', 'pv', Version) and (Version <> '') then
+    Result := False
+  else if RegQueryStringValue(HKCU, 'Software\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}', 'pv', Version) and (Version <> '') then
+    Result := False;
+end;

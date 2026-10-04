@@ -234,6 +234,92 @@ if (-not $SkipPython) {
 }
 
 # ---------------------------------------------------------------------------
+# 4b. 内置 VC++ 运行库（app-local 部署，免管理员安装 vc_redist）
+# ---------------------------------------------------------------------------
+# torch / onnxruntime 等原生扩展依赖 MSVCP140.dll、VCRUNTIME140*.dll。
+# 微软允许把这组 CRT DLL 随应用本地部署（app-local），安装包因此无需管理员权限。
+if (Test-Path -LiteralPath $pyDir) {
+    Write-Step "内置 VC++ 运行库（app-local）"
+    $crtNames = @(
+        'concrt140.dll',
+        'msvcp140.dll',
+        'msvcp140_1.dll',
+        'msvcp140_2.dll',
+        'msvcp140_atomic_wait.dll',
+        'msvcp140_codecvt_ids.dll',
+        'vcruntime140.dll',
+        'vcruntime140_1.dll'
+    )
+
+    # 依次尝试：VS 再分发包目录（首选）→ 系统目录（同为可再分发二进制）。
+    $crtDirs = @()
+    foreach ($crtRoot in @(
+        (Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio2\BuildTools\VC\Redist\MSVC'),
+        (Join-Path $env:ProgramFiles 'Microsoft Visual Studio2\BuildTools\VC\Redist\MSVC')
+    )) {
+        if (Test-Path -LiteralPath $crtRoot) {
+            $crtDirs += Get-ChildItem -LiteralPath $crtRoot -Directory -ErrorAction SilentlyContinue |
+                ForEach-Object { Join-Path $_.FullName 'x64\Microsoft.VC143.CRT' } |
+                Where-Object { Test-Path -LiteralPath $_ }
+        }
+    }
+    $system32 = Join-Path $env:SystemRoot 'System32'
+    $crtDirs += $system32
+
+    $crtCopied = 0
+    foreach ($name in $crtNames) {
+        $src = $null
+        foreach ($dir in $crtDirs) {
+            $candidate = Join-Path $dir $name
+            if (Test-Path -LiteralPath $candidate) { $src = $candidate; break }
+        }
+        if ($src) {
+            Copy-Item -LiteralPath $src -Destination (Join-Path $pyDir $name) -Force
+            $crtCopied++
+        }
+        else {
+            Write-Note "未找到 $name（目标机器缺 VC++ 运行库时，torch 可能加载失败）"
+        }
+    }
+    Write-Info "已内置 $crtCopied/$($crtNames.Count) 个 VC++ 运行库 DLL"
+
+    # torch 通过 add_dll_directory 加载 torch\lib，再放一份以确保依赖解析成功。
+    $torchLib = Join-Path $pyDir 'Lib\site-packages\torch\lib'
+    if (Test-Path -LiteralPath $torchLib) {
+        foreach ($name in $crtNames) {
+            $dst = Join-Path $pyDir $name
+            if (Test-Path -LiteralPath $dst) {
+                Copy-Item -LiteralPath $dst -Destination (Join-Path $torchLib $name) -Force
+            }
+        }
+        Write-Info "已同步 CRT 到 torch\lib"
+    }
+}
+
+# ---------------------------------------------------------------------------
+# 4c. 内置 WebView2 引导程序（应用内登录抖音需要 WebView2 运行时）
+# ---------------------------------------------------------------------------
+$wv2Dir = Join-Path $OutDir 'runtime\bin\webview2'
+$wv2Exe = Join-Path $wv2Dir 'MicrosoftEdgeWebview2Setup.exe'
+if (-not (Test-Path -LiteralPath $wv2Exe)) {
+    Write-Step "下载 WebView2 引导程序"
+    New-Item -ItemType Directory -Force -Path $wv2Dir | Out-Null
+    try {
+        Get-RemoteFile -Urls @(
+            'https://go.microsoft.com/fwlink/p/?LinkId=2124703',
+            'https://msedge.sf.dl.delivery.mp.microsoft.com/filestreamingservice/files/MicrosoftEdgeWebview2Setup.exe'
+        ) -Destination $wv2Exe -Label 'WebView2 引导程序'
+        Write-Info "已内置 WebView2 引导程序"
+    }
+    catch {
+        Write-Note "WebView2 引导程序下载失败（可稍后手动重试）；应用其余功能不受影响。"
+    }
+}
+else {
+    Write-Info "WebView2 引导程序已存在，跳过下载"
+}
+
+# ---------------------------------------------------------------------------
 # 5. 安装依赖（CPU 版 PyTorch 直接内置）
 # ---------------------------------------------------------------------------
 if ($SkipPip) {
