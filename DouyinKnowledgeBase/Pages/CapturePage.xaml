@@ -1,0 +1,302 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="DouyinKnowledgeBase.Pages.CapturePage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:pages="using:DouyinKnowledgeBase.Pages"
+    Background="{ThemeResource DouKBPaperBrush}"
+    mc:Ignorable="d">
+
+    <!-- 快速获取：粘贴分享文案 → 纵向步骤轴 → 最近完成 -->
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Style="{StaticResource DouKBHairlineStyle}" />
+
+        <ScrollViewer
+            Grid.Row="1"
+            Padding="46,36,46,40"
+            VerticalScrollBarVisibility="Auto">
+            <StackPanel MaxWidth="760" HorizontalAlignment="Left">
+
+                <TextBlock Text="快速获取" Style="{StaticResource DouKBDisplayTextStyle}" />
+                <TextBlock
+                    Margin="0,10,0,0"
+                    Style="{StaticResource DouKBLedgerTextStyle}"
+                    Text="粘贴分享文案，视频会下载到本地，再用本地模型转写成文字稿。" />
+
+                <!-- 输入区：一条底线，不做输入框卡片 -->
+                <TextBox
+                    x:Name="ShareBox"
+                    Height="84"
+                    Margin="0,28,0,0"
+                    AcceptsReturn="True"
+                    AutomationProperties.Name="分享文案或链接"
+                    PlaceholderText="粘贴抖音分享文案或链接，例如：Docker和K8s到底什么区别 https://v.douyin.com/xxxxxxx/"
+                    ScrollViewer.VerticalScrollBarVisibility="Auto"
+                    Style="{StaticResource DouKBLineTextBoxStyle}"
+                    TextWrapping="Wrap" />
+
+                <StackPanel
+                    Margin="0,18,0,0"
+                    Orientation="Horizontal"
+                    Spacing="22">
+                    <Button
+                        x:Name="StartButton"
+                        Click="StartButton_Click"
+                        Content="开始下载并转写"
+                        Style="{StaticResource DouKBStrongButtonStyle}" />
+                    <Button
+                        x:Name="ClearButton"
+                        Click="ClearButton_Click"
+                        Content="清空"
+                        Style="{StaticResource DouKBQuietButtonStyle}" />
+                    <Button
+                        x:Name="CookieButton"
+                        Click="CookieButton_Click"
+                        Content="刷新 Cookie"
+                        Style="{StaticResource DouKBQuietButtonStyle}" />
+                    <TextBlock
+                        Margin="12,0,0,0"
+                        VerticalAlignment="Center"
+                        Style="{StaticResource DouKBCaptionTextStyle}"
+                        Text="Cookie 约 7 天失效，下载失败时再刷新" />
+                </StackPanel>
+
+                <!-- 处理中：标题 + 纵向步骤轴 -->
+                <StackPanel x:Name="PipePanel" Margin="0,44,0,0" Visibility="Collapsed">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock Style="{StaticResource DouKBLedgerTextStyle}" Text="正在处理" />
+                        <TextBlock
+                            x:Name="PipeTitle"
+                            Style="{StaticResource DouKBLedgerTextStyle}"
+                            FontWeight="SemiBold"
+                            Foreground="{ThemeResource DouKBInkBrush}"
+                            Text="" />
+                    </StackPanel>
+                    <Border Margin="0,14,0,0" Style="{StaticResource DouKBHairlineStyle}" />
+
+                    <!-- 步骤轴：左侧竖线 + 圆点 -->
+                    <Grid Margin="0,6,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="26" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Border
+                            x:Name="Spine"
+                            Width="1"
+                            Margin="4,22,0,26"
+                            HorizontalAlignment="Left"
+                            Background="{ThemeResource DouKBRuleBrush}" />
+
+                        <StackPanel Grid.Column="1">
+                            <!-- 1 解析链接 -->
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="26" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Ellipse
+                                    x:Name="DotParse"
+                                    Width="9"
+                                    Height="9"
+                                    Margin="0,20,0,0"
+                                    HorizontalAlignment="Left"
+                                    Fill="{ThemeResource DouKBPaperBrush}"
+                                    Stroke="{ThemeResource DouKBInk3Brush}"
+                                    StrokeThickness="1" />
+                                <StackPanel Grid.Column="1" Margin="0,16,0,16" Spacing="3">
+                                    <TextBlock x:Name="NameParse" Text="解析链接" />
+                                    <TextBlock x:Name="DetailParse" Style="{StaticResource DouKBCaptionTextStyle}" Text="" />
+                                </StackPanel>
+                            </Grid>
+
+                            <!-- 2 下载视频 -->
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="26" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Ellipse
+                                    x:Name="DotDownload"
+                                    Width="9"
+                                    Height="9"
+                                    Margin="0,20,0,0"
+                                    HorizontalAlignment="Left"
+                                    Fill="{ThemeResource DouKBPaperBrush}"
+                                    Stroke="{ThemeResource DouKBInk3Brush}"
+                                    StrokeThickness="1" />
+                                <StackPanel Grid.Column="1" Margin="0,16,0,16" Spacing="3">
+                                    <TextBlock x:Name="NameDownload" Text="下载视频" />
+                                    <TextBlock x:Name="DetailDownload" Style="{StaticResource DouKBCaptionTextStyle}" Text="" />
+                                    <TextBlock
+                                        x:Name="DownloadStats"
+                                        Foreground="{ThemeResource DouKBLiveBrush}"
+                                        FontWeight="SemiBold"
+                                        Style="{StaticResource DouKBCaptionTextStyle}"
+                                        Text=""
+                                        Visibility="Collapsed" />
+                                    <ProgressBar
+                                        x:Name="BarDownload"
+                                        Width="236"
+                                        HorizontalAlignment="Left"
+                                        Background="{ThemeResource DouKBRuleBrush}"
+                                        CornerRadius="0"
+                                        Foreground="{ThemeResource DouKBLiveBrush}"
+                                        Maximum="100"
+                                        Visibility="Collapsed" />
+                                </StackPanel>
+                            </Grid>
+
+                            <!-- 3 提取音频 -->
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="26" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Ellipse
+                                    x:Name="DotAudio"
+                                    Width="9"
+                                    Height="9"
+                                    Margin="0,20,0,0"
+                                    HorizontalAlignment="Left"
+                                    Fill="{ThemeResource DouKBPaperBrush}"
+                                    Stroke="{ThemeResource DouKBInk3Brush}"
+                                    StrokeThickness="1" />
+                                <StackPanel Grid.Column="1" Margin="0,16,0,16" Spacing="3">
+                                    <TextBlock x:Name="NameAudio" Text="提取音频" />
+                                    <TextBlock x:Name="DetailAudio" Style="{StaticResource DouKBCaptionTextStyle}" Text="" />
+                                </StackPanel>
+                            </Grid>
+
+                            <!-- 4 转写文字（带进度条） -->
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="26" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Ellipse
+                                    x:Name="DotTranscribe"
+                                    Width="9"
+                                    Height="9"
+                                    Margin="0,20,0,0"
+                                    HorizontalAlignment="Left"
+                                    Fill="{ThemeResource DouKBPaperBrush}"
+                                    Stroke="{ThemeResource DouKBInk3Brush}"
+                                    StrokeThickness="1" />
+                                <StackPanel Grid.Column="1" Margin="0,16,0,16" Spacing="3">
+                                    <TextBlock x:Name="NameTranscribe" Text="转写文字" />
+                                    <TextBlock x:Name="DetailTranscribe" Style="{StaticResource DouKBCaptionTextStyle}" Text="" />
+                                    <ProgressBar
+                                        x:Name="BarTranscribe"
+                                        Width="236"
+                                        HorizontalAlignment="Left"
+                                        Background="{ThemeResource DouKBRuleBrush}"
+                                        CornerRadius="0"
+                                        Foreground="{ThemeResource DouKBLiveBrush}"
+                                        Maximum="100"
+                                        Visibility="Collapsed" />
+                                </StackPanel>
+                            </Grid>
+
+                            <!-- 5 生成文稿 -->
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="26" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Ellipse
+                                    x:Name="DotDone"
+                                    Width="9"
+                                    Height="9"
+                                    Margin="0,20,0,0"
+                                    HorizontalAlignment="Left"
+                                    Fill="{ThemeResource DouKBPaperBrush}"
+                                    Stroke="{ThemeResource DouKBInk3Brush}"
+                                    StrokeThickness="1" />
+                                <StackPanel Grid.Column="1" Margin="0,16,0,16" Spacing="3">
+                                    <TextBlock x:Name="NameDone" Text="生成文稿" />
+                                    <TextBlock x:Name="DetailDone" Style="{StaticResource DouKBCaptionTextStyle}" Text="等待转写完成" />
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- 错误信息 -->
+                    <TextBlock
+                        x:Name="ErrorText"
+                        Margin="0,10,0,0"
+                        Style="{StaticResource DouKBLedgerTextStyle}"
+                        Foreground="{ThemeResource DouKBInkBrush}"
+                        Text=""
+                        TextWrapping="Wrap"
+                        Visibility="Collapsed" />
+                </StackPanel>
+
+                <!-- 最近完成 -->
+                <StackPanel x:Name="RecentPanel" Margin="0,40,0,0" Visibility="Collapsed">
+                    <TextBlock Style="{StaticResource DouKBMetaTextStyle}" Text="最近完成" />
+                    <Border Margin="0,10,0,0" Style="{StaticResource DouKBHairlineStyle}" />
+                    <ListView
+                        x:Name="RecentList"
+                        IsItemClickEnabled="True"
+                        ItemClick="RecentList_ItemClick"
+                        SelectionMode="None">
+                        <ListView.ItemContainerStyle>
+                            <Style TargetType="ListViewItem">
+                                <Setter Property="Padding" Value="0" />
+                                <Setter Property="MinHeight" Value="0" />
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                            </Style>
+                        </ListView.ItemContainerStyle>
+                        <ListView.ItemTemplate>
+                            <DataTemplate x:DataType="pages:RecentRow">
+                                <Grid>
+                                    <Grid Margin="0,15" ColumnSpacing="16">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="30" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <Border
+                                            Width="30"
+                                            Height="53"
+                                            VerticalAlignment="Center"
+                                            Background="{ThemeResource DouKBFrameBrush}"
+                                            CornerRadius="2">
+                                            <FontIcon
+                                                HorizontalAlignment="Center"
+                                                VerticalAlignment="Center"
+                                                FontSize="9"
+                                                Foreground="{ThemeResource DouKBFrameMarkBrush}"
+                                                Glyph="&#xE768;" />
+                                        </Border>
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4">
+                                            <TextBlock
+                                                Style="{StaticResource DouKBLedgerTextStyle}"
+                                                Foreground="{ThemeResource DouKBInkBrush}"
+                                                Text="{x:Bind Title}"
+                                                TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Style="{StaticResource DouKBCaptionTextStyle}" Text="{x:Bind Sub}" />
+                                        </StackPanel>
+                                        <TextBlock
+                                            Grid.Column="2"
+                                            VerticalAlignment="Center"
+                                            Style="{StaticResource DouKBCaptionTextStyle}"
+                                            Text="{x:Bind When}" />
+                                    </Grid>
+                                    <Border VerticalAlignment="Bottom" Style="{StaticResource DouKBHairlineStyle}" />
+                                </Grid>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</Page>

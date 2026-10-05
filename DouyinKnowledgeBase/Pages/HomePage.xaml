@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="DouyinKnowledgeBase.Pages.HomePage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:pages="using:DouyinKnowledgeBase.Pages"
+    Background="{ThemeResource DouKBPaperBrush}"
+    mc:Ignorable="d">
+
+    <!-- 知识库总览：搜索、状态筛选与条目列表 -->
+    <Grid Padding="46,26,46,0">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- 搜索 -->
+        <Grid ColumnSpacing="16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" MaxWidth="520" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBox
+                x:Name="SearchBox"
+                Style="{StaticResource DouKBSearchTextBoxStyle}"
+                PlaceholderText="搜索标题、标签或转写正文"
+                TextChanged="SearchBox_TextChanged" />
+            <TextBlock
+                x:Name="TotalText"
+                Grid.Column="1"
+                VerticalAlignment="Center"
+                Style="{StaticResource DouKBMetaTextStyle}"
+                Text="共 0 条" />
+        </Grid>
+
+        <!-- 标题与统计 -->
+        <StackPanel Grid.Row="1" Margin="0,26,0,0">
+            <TextBlock Text="知识库" Style="{StaticResource DouKBDisplayTextStyle}" />
+            <TextBlock
+                x:Name="StatsText"
+                Margin="0,10,0,0"
+                Style="{StaticResource DouKBLedgerTextStyle}"
+                Text="正在读取本地知识库…" />
+        </StackPanel>
+
+        <!-- 状态筛选 -->
+        <StackPanel
+            Grid.Row="2"
+            Margin="0,22,0,10"
+            Orientation="Horizontal"
+            Spacing="22">
+            <Button
+                x:Name="TabAll"
+                Click="StatusTab_Click"
+                Content="全部"
+                Style="{StaticResource DouKBTabButtonSelectedStyle}"
+                Tag="All" />
+            <Button
+                x:Name="TabSummarized"
+                Click="StatusTab_Click"
+                Content="已总结"
+                Style="{StaticResource DouKBTabButtonStyle}"
+                Tag="Summarized" />
+            <Button
+                x:Name="TabTranscribed"
+                Click="StatusTab_Click"
+                Content="待总结"
+                Style="{StaticResource DouKBTabButtonStyle}"
+                Tag="Transcribed" />
+        </StackPanel>
+
+        <!-- 标签筛选：按出现次数倒序，最多 12 个 -->
+        <ItemsControl
+            x:Name="TagList"
+            Grid.Row="2"
+            Margin="0,58,0,10"
+            ItemsSource="{x:Null}">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <StackPanel Orientation="Horizontal" Spacing="18" />
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="x:String">
+                    <Button
+                        Click="TagButton_Click"
+                        Content="{x:Bind}"
+                        Style="{StaticResource DouKBTagButtonStyle}" />
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <Border Grid.Row="3" Style="{StaticResource DouKBHairlineStyle}" />
+
+        <!-- 处理中条：有管线在跑时显示标题与进度 -->
+        <StackPanel
+            x:Name="LiveBar"
+            Grid.Row="4"
+            Margin="0,14,0,0"
+            Orientation="Horizontal"
+            Spacing="14"
+            Visibility="Collapsed">
+            <TextBlock
+                x:Name="LiveTitle"
+                VerticalAlignment="Center"
+                Style="{StaticResource DouKBLedgerTextStyle}"
+                FontWeight="SemiBold"
+                Foreground="{ThemeResource DouKBInkBrush}"
+                Text="" />
+            <ProgressBar
+                x:Name="LiveBarProgress"
+                Width="170"
+                VerticalAlignment="Center"
+                Background="{ThemeResource DouKBRuleBrush}"
+                CornerRadius="0"
+                Foreground="{ThemeResource DouKBLiveBrush}"
+                Maximum="100" />
+            <TextBlock
+                x:Name="LiveState"
+                VerticalAlignment="Center"
+                Style="{StaticResource DouKBMetaTextStyle}"
+                Foreground="{ThemeResource DouKBLiveBrush}"
+                Text="" />
+        </StackPanel>
+
+        <!-- 条目列表：无卡片，靠节奏与对齐分层 -->
+        <ListView
+            x:Name="ItemList"
+            Grid.Row="5"
+            Padding="0,0,0,32"
+            IsItemClickEnabled="True"
+            ItemClick="ItemList_ItemClick"
+            SelectionMode="None">
+            <ListView.ItemContainerStyle>
+                <Style TargetType="ListViewItem">
+                    <Setter Property="Padding" Value="0" />
+                    <Setter Property="MinHeight" Value="0" />
+                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                </Style>
+            </ListView.ItemContainerStyle>
+            <ListView.ItemTemplate>
+                <DataTemplate x:DataType="pages:LibraryRow">
+                    <Grid>
+                        <Grid Margin="0,15" ColumnSpacing="16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <!-- 9:16 视频片格 -->
+                            <Border Style="{StaticResource DouKBFrameStyle}">
+                                <Grid>
+                                    <FontIcon
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        FontSize="13"
+                                        Foreground="{ThemeResource DouKBFrameMarkBrush}"
+                                        Glyph="&#xE768;"
+                                        Visibility="{x:Bind PlayVisibility}" />
+                                    <TextBlock
+                                        Margin="0,0,0,5"
+                                        VerticalAlignment="Bottom"
+                                        Style="{StaticResource DouKBNumericTextStyle}"
+                                        Text="{x:Bind DurationLabel}" />
+                                </Grid>
+                            </Border>
+
+                            <StackPanel
+                                Grid.Column="1"
+                                VerticalAlignment="Center"
+                                Spacing="5">
+                                <TextBlock Style="{StaticResource DouKBRowTitleStyle}" Text="{x:Bind Title}" />
+                                <TextBlock
+                                    MaxLines="1"
+                                    Style="{StaticResource DouKBLedgerTextStyle}"
+                                    Text="{x:Bind Excerpt}"
+                                    TextTrimming="CharacterEllipsis" />
+                                <TextBlock Style="{StaticResource DouKBMetaTextStyle}" Text="{x:Bind DateLabel}" />
+                            </StackPanel>
+
+                            <TextBlock
+                                Grid.Column="2"
+                                VerticalAlignment="Center"
+                                Style="{StaticResource DouKBMetaTextStyle}"
+                                Text="{x:Bind StatusLabel}" />
+                        </Grid>
+                        <Border VerticalAlignment="Bottom" Style="{StaticResource DouKBHairlineStyle}" />
+                    </Grid>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+
+        <TextBlock
+            x:Name="EmptyText"
+            Grid.Row="5"
+            Margin="0,60,0,0"
+            Style="{StaticResource DouKBLedgerTextStyle}"
+            Foreground="{ThemeResource DouKBInk3Brush}"
+            Text="正在读取本地知识库…"
+            Visibility="Collapsed" />
+    </Grid>
+</Page>

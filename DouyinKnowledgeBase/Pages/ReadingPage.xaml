@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="DouyinKnowledgeBase.Pages.ReadingPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:md="using:CommunityToolkit.WinUI.UI.Controls"
+    Background="{ThemeResource DouKBPaperBrush}"
+    mc:Ignorable="d">
+
+    <!-- 阅读视图：左片格栏 + 文章 + 右目录 -->
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- 顶部操作条 -->
+        <Border Grid.Row="0" Padding="46,14,46,14" BorderBrush="{ThemeResource DouKBRuleBrush}" BorderThickness="0,0,0,1">
+            <StackPanel HorizontalAlignment="Left" Orientation="Horizontal" Spacing="18">
+                <Button
+                    x:Name="BackButton"
+                    Click="BackButton_Click"
+                    Content="返回知识库"
+                    Style="{StaticResource DouKBQuietButtonStyle}" />
+                <Button
+                    x:Name="GenerateButton"
+                    Click="GenerateButton_Click"
+                    Content="生成知识文章"
+                    Style="{StaticResource DouKBStrongButtonStyle}" />
+                <Button
+                    x:Name="ExportButton"
+                    Click="ExportButton_Click"
+                    Content="导出 Markdown"
+                    IsEnabled="False"
+                    Style="{StaticResource DouKBQuietButtonStyle}" />
+                <Button
+                    x:Name="CopyButton"
+                    Click="CopyButton_Click"
+                    Content="复制全文"
+                    IsEnabled="False"
+                    Style="{StaticResource DouKBQuietButtonStyle}" />
+                <ProgressRing
+                    x:Name="BusyRing"
+                    Width="18"
+                    Height="18"
+                    VerticalAlignment="Center"
+                    Visibility="Collapsed" />
+            </StackPanel>
+        </Border>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="196" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- 左：视频片格栏 -->
+            <Border
+                Grid.Column="0"
+                Padding="26,38,26,30"
+                BorderBrush="{ThemeResource DouKBRuleBrush}"
+                BorderThickness="0,0,1,0">
+                <StackPanel Spacing="14">
+                    <Border
+                        Width="142"
+                        Height="252"
+                        HorizontalAlignment="Left"
+                        Background="{ThemeResource DouKBFrameBrush}"
+                        CornerRadius="4">
+                        <Grid>
+                            <FontIcon
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                FontSize="24"
+                                Foreground="{ThemeResource DouKBFrameMarkBrush}"
+                                Glyph="&#xE768;" />
+                            <TextBlock
+                                x:Name="FrameDur"
+                                Margin="0,0,0,10"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Bottom"
+                                Style="{StaticResource DouKBNumericTextStyle}"
+                                Text="" />
+                        </Grid>
+                    </Border>
+                    <TextBlock
+                        x:Name="SourceTitle"
+                        Style="{StaticResource DouKBCaptionTextStyle}"
+                        Text=""
+                        TextWrapping="Wrap" />
+                    <StackPanel Spacing="11" Margin="0,10,0,0">
+                        <Button
+                            x:Name="WatchButton"
+                            Click="WatchButton_Click"
+                            Content="回看原视频"
+                            Style="{StaticResource DouKBQuietButtonStyle}" />
+                        <Button
+                            x:Name="TranscriptButton"
+                            Click="TranscriptButton_Click"
+                            Content="查看转写原文"
+                            Style="{StaticResource DouKBQuietButtonStyle}" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- 右：文章 + 目录 -->
+            <Grid Grid.Column="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="170" />
+                </Grid.ColumnDefinitions>
+
+                <ScrollViewer
+                    Grid.Column="0"
+                    Padding="54,38,24,60"
+                    VerticalScrollBarVisibility="Auto">
+                    <StackPanel MaxWidth="672" HorizontalAlignment="Left" Spacing="0">
+
+                        <TextBlock
+                            x:Name="CrumbText"
+                            Style="{StaticResource DouKBMetaTextStyle}"
+                            Text="知识库" />
+                        <TextBlock
+                            x:Name="TitleText"
+                            Margin="0,18,0,0"
+                            Style="{StaticResource DouKBDisplayTextStyle}"
+                            Text="" />
+                        <StackPanel
+                            x:Name="MetaPanel"
+                            Margin="0,16,0,0"
+                            Orientation="Horizontal"
+                            Spacing="22">
+                            <TextBlock x:Name="MetaSource" Style="{StaticResource DouKBMetaTextStyle}" Text="" />
+                            <TextBlock x:Name="MetaDuration" Style="{StaticResource DouKBMetaTextStyle}" Text="" />
+                            <TextBlock x:Name="MetaDate" Style="{StaticResource DouKBMetaTextStyle}" Text="" />
+                        </StackPanel>
+                        <Border Margin="0,26,0,30" Style="{StaticResource DouKBHairlineStyle}" />
+
+                        <!-- Markdown 渲染 -->
+                        <md:MarkdownTextBlock
+                            x:Name="Article"
+                            Background="Transparent"
+                            CodeBackground="{ThemeResource DouKBSunkBrush}"
+                            CodeBorderBrush="{ThemeResource DouKBRuleBrush}"
+                            CodeBorderThickness="1"
+                            CodePadding="8,6"
+                            FontFamily="{StaticResource DouKBReadFont}"
+                            FontSize="15.5"
+                            Foreground="{ThemeResource DouKBInkBrush}"
+                            Header1FontSize="26"
+                            Header1FontWeight="Bold"
+                            Header1Foreground="{ThemeResource DouKBInkBrush}"
+                            Header2FontSize="19"
+                            Header2FontWeight="Bold"
+                            Header2Foreground="{ThemeResource DouKBInkBrush}"
+                            Header3FontSize="16.5"
+                            Header3FontWeight="SemiBold"
+                            Header3Foreground="{ThemeResource DouKBInkBrush}"
+                            Header4FontSize="15.5"
+                            Header4FontWeight="SemiBold"
+                            Header4Foreground="{ThemeResource DouKBInk2Brush}"
+                            HorizontalRuleBrush="{ThemeResource DouKBRuleBrush}"
+                            IsTextSelectionEnabled="True"
+                            LinkForeground="{ThemeResource DouKBLiveBrush}"
+                            ListBulletSpacing="6"
+                            ParagraphLineHeight="30"
+                            ParagraphMargin="0,0,0,20"
+                            QuoteBackground="Transparent"
+                            QuoteBorderBrush="{ThemeResource DouKBInkBrush}"
+                            QuoteBorderThickness="2,0,0,0"
+                            QuotePadding="2,0,2,18"
+                            Text=""
+                            TextWrapping="Wrap" />
+
+                        <!-- 尚未生成文章时的引导 -->
+                        <StackPanel x:Name="EmptyPanel" Spacing="10" Visibility="Collapsed">
+                            <TextBlock
+                                Style="{StaticResource DouKBReadingTextStyle}"
+                                Text="这篇文章还没有生成。" />
+                            <TextBlock
+                                Style="{StaticResource DouKBLedgerTextStyle}"
+                                Text="点击上方「生成知识文章」，调用配置好的大模型把转写稿整理成结构化文章。" />
+                        </StackPanel>
+
+                        <InfoBar
+                            x:Name="StatusInfo"
+                            Margin="0,18,0,0"
+                            IsClosable="True"
+                            IsOpen="False" />
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- 右：本文结构 -->
+                <Border
+                    Grid.Column="1"
+                    Padding="20,76,20,20"
+                    BorderBrush="{ThemeResource DouKBRuleBrush}"
+                    BorderThickness="1,0,0,0">
+                    <StackPanel Spacing="8">
+                        <TextBlock Style="{StaticResource DouKBMetaTextStyle}" Text="本文结构" />
+                        <ItemsControl x:Name="TocList">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="x:String">
+                                    <TextBlock
+                                        Margin="0,6,0,0"
+                                        Style="{StaticResource DouKBMetaTextStyle}"
+                                        Text="{x:Bind}" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Grid>
+    </Grid>
+</Page>

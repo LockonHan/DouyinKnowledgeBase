@@ -57,6 +57,8 @@
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="*" />
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="*" />
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools.WinApp" Version="*" />
+    <!-- 选型实验：Windows Community Toolkit 7.x 的 Markdown 控件（WinUI3） -->
+    <PackageReference Include="CommunityToolkit.WinUI.UI.Controls.Markdown" Version="7.1.2" />
   </ItemGroup>
 
   <!--
