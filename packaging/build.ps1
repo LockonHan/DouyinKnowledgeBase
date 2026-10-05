@@ -10,7 +10,7 @@
       runtime\python\   内置 CPython + CPU 版 PyTorch + FunASR 工具链
       runtime\bin\      ffmpeg.exe
       runtime\models\   （空）首次运行时按设备下载模型
-      runtime\browsers\ （空）首次运行时下载 Playwright Chromium
+      runtime\browsers\ Playwright 无头内核（构建时预打包，版本与内置 playwright 严格匹配）
 
     随后可用 packaging\DouyinKnowledgeBase.iss 编译安装器（需自行安装 Inno Setup 6）。
 
@@ -28,12 +28,14 @@ param(
     [string]$OutDir = '',
     [string]$PythonVersion = '3.11.9',
     [string]$TorchVersion = '2.6.0',
+    [string]$PlaywrightVersion = '1.63.0',
     [string]$FfmpegPath = '',
     [string]$PipIndex = 'https://pypi.tuna.tsinghua.edu.cn/simple',
     [switch]$SkipApp,
     [switch]$SkipPython,
     [switch]$SkipPip,
     [switch]$SkipFfmpeg,
+    [switch]$SkipBrowser,
     [switch]$MakeInstaller,
     [switch]$MakeZip
 )
@@ -337,13 +339,69 @@ else {
     & $pyExe @common "torch==$TorchVersion" "torchaudio==$TorchVersion"
     if ($LASTEXITCODE -ne 0) { throw "PyTorch（CPU）安装失败" }
 
-    & $pyExe @common 'funasr' 'modelscope' 'playwright' 'curl_cffi' 'sentencepiece==0.1.99'
+    & $pyExe @common 'funasr' 'modelscope' "playwright==$PlaywrightVersion" 'curl_cffi' 'sentencepiece==0.1.99'
     if ($LASTEXITCODE -ne 0) { throw "FunASR 工具链安装失败" }
 
     Write-Step "验证内置运行时"
-    & $pyExe -c "import torch, funasr, modelscope, playwright, curl_cffi, sentencepiece; print('torch', torch.__version__); print('cuda', torch.cuda.is_available()); print('funasr', funasr.__version__)"
+    & $pyExe -c "import torch, funasr, modelscope, playwright, curl_cffi, sentencepiece; print('torch', torch.__version__); print('cuda', torch.cuda.is_available()); print('funasr', funasr.__version__); print('playwright', playwright.__version__)"
     if ($LASTEXITCODE -ne 0) { throw "内置运行时自检失败" }
     Write-Info "CPU 版 PyTorch 已内置；GPU 用户首次运行时由环境准备向导按需下载 CUDA 版"
+}
+
+# ---------------------------------------------------------------------------
+# 5b. 预打包 Playwright 无头内核（与内置 playwright 版本严格匹配）
+# ---------------------------------------------------------------------------
+# 浏览器内核版本由 playwright 包版本决定，两者必须一致；这里用刚装好依赖的内置
+# Python 下载，保证版本匹配。官方源国内常超时，npmmirror 镜像优先。
+if ($SkipBrowser) {
+    Write-Step "跳过浏览器预打包（-SkipBrowser）"
+}
+elseif (-not (Test-Path -LiteralPath $pyExe)) {
+    Write-Note "内置 Python 不存在，跳过浏览器预打包；首次运行时由环境准备向导下载"
+}
+else {
+    $browsersDir = Join-Path $OutDir 'runtime\browsers'
+    $headlessMarker = Get-ChildItem -LiteralPath $browsersDir -Directory -Filter 'chromium_headless_shell-*' -ErrorAction SilentlyContinue |
+        Select-Object -First 1
+    if ($headlessMarker) {
+        Write-Step "Playwright 无头内核已预打包（$($headlessMarker.Name)），跳过"
+    }
+    else {
+        Write-Step "预打包 Playwright 无头内核（约 270 MB）"
+        New-Item -ItemType Directory -Force -Path $browsersDir | Out-Null
+        $env:PLAYWRIGHT_BROWSERS_PATH = $browsersDir
+        $hosts = @(
+            'https://cdn.npmmirror.com/binaries/playwright',
+            'https://registry.npmmirror.com/-/binary/playwright',
+            ''
+        )
+        $installed = $false
+        foreach ($dlHost in $hosts) {
+            if ($dlHost) {
+                Write-Info "下载源：$dlHost"
+                $env:PLAYWRIGHT_DOWNLOAD_HOST = $dlHost
+            }
+            else {
+                Write-Info '下载源：Playwright 官方'
+                Remove-Item Env:\PLAYWRIGHT_DOWNLOAD_HOST -ErrorAction SilentlyContinue
+            }
+            & $pyExe -m playwright install chromium-headless-shell
+            if ($LASTEXITCODE -eq 0) { $installed = $true; break }
+            Write-Note "该源下载失败，尝试下一个…"
+        }
+        Remove-Item Env:\PLAYWRIGHT_BROWSERS_PATH -ErrorAction SilentlyContinue
+        Remove-Item Env:\PLAYWRIGHT_DOWNLOAD_HOST -ErrorAction SilentlyContinue
+        if (-not $installed) {
+            throw "Playwright 无头内核下载失败。请检查网络后重试，或加 -SkipBrowser 跳过（首次运行时由环境准备向导下载）"
+        }
+
+        # 启动探测：确保预打包的内核真的能跑起来。
+        $env:PLAYWRIGHT_BROWSERS_PATH = $browsersDir
+        & $pyExe -c "from playwright.sync_api import sync_playwright; p = sync_playwright().start(); b = p.chromium.launch(); print('LAUNCH_OK', b.version); b.close(); p.stop()"
+        Remove-Item Env:\PLAYWRIGHT_BROWSERS_PATH -ErrorAction SilentlyContinue
+        if ($LASTEXITCODE -ne 0) { throw "预打包的浏览器内核启动探测失败" }
+        Write-Info "已预打包 Playwright 无头内核到 runtime\browsers（启动探测通过）"
+    }
 }
 
 # ---------------------------------------------------------------------------
@@ -361,10 +419,9 @@ $readme = @"
 1. 双击 app\DouyinKnowledgeBase.exe 启动应用。
 2. 首次使用请点击主页的「环境准备」：
    - 检测到 NVIDIA 显卡时，会询问使用 GPU 加速还是仅 CPU；
-   - 按需下载 PyTorch（CPU 版已内置，GPU 版约 2.5 GB）、语音模型（约 2 GB）
-     与 Playwright 无头内核（约 270 MB）；
-   - 下载源为国内镜像（ModelScope / 清华 TUNA / 华为云 / npmmirror），支持断点与重试；
-     浏览器下载失败会自动切换镜像，也可用 PLAYWRIGHT_DOWNLOAD_HOST 指定。
+   - 按需下载 PyTorch（CPU 版已内置，GPU 版约 2.5 GB）与语音模型（约 2 GB）；
+   - Playwright 无头内核（约 270 MB）已随包预打包，无需下载；
+   - 下载源为国内镜像（ModelScope / 清华 TUNA / 华为云 / npmmirror），支持断点与重试。
 3. 若本机已有模型或需要离线部署，可在「环境准备」里手动指定模型目录，
    应用会直接复用其中的模型；详细步骤见同目录下的《离线部署说明.md》。
 4. 在「设置」中配置大模型接入点（OpenAI 兼容），即可把转写稿总结成知识文章。
@@ -376,7 +433,7 @@ tools\               Python 工具脚本
 runtime\python\      内置 Python（含 CPU 版 PyTorch 与 FunASR 依赖）
 runtime\bin\         内置 ffmpeg
 runtime\models\      语音模型（首次运行时下载）
-runtime\browsers\    Playwright 浏览器（首次运行时下载）
+runtime\browsers\    Playwright 无头内核（已预打包）
 data\                下载的视频、音频与转写稿
 
 卸载不会删除 data\ 与 runtime\models\ 中的内容，如需彻底清理请手动删除。

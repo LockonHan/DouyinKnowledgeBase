@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>抖音知识库 · 知识库首页</title>
+<style>
+  :root{
+    --paper:#F4F5F2; --sunk:#EAEDE8; --ink:#1B2430; --ink2:#59636F;
+    --ink3:#8B949E; --rule:#DCE0DA; --live:#0FB5BE; --frame:#DFE3DD;
+    --ui:"Segoe UI Variable Text","Segoe UI","Microsoft YaHei UI",sans-serif;
+    --read:"Source Han Serif SC","Noto Serif SC","Songti SC","SimSun",serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{width:1440px;height:960px;overflow:hidden;background:var(--paper);
+       color:var(--ink);font-family:var(--ui);-webkit-font-smoothing:antialiased}
+  .win{height:960px;display:flex;flex-direction:column}
+
+  /* 标题栏 */
+  .titlebar{height:36px;display:flex;align-items:center;padding:0 12px 0 14px;gap:9px;border-bottom:1px solid var(--rule)}
+  .mark{width:21px;height:21px;background:var(--ink);color:var(--paper);display:flex;align-items:center;justify-content:center;
+        font-family:var(--read);font-size:13px;line-height:1;border-radius:3px}
+  .win-title{font-size:12.5px;color:var(--ink2)}
+  .win-ctl{margin-left:auto;display:flex;gap:18px;align-items:center}
+  .win-ctl i{display:block;width:11px;height:1px;background:var(--ink3)}
+  .win-ctl .sq{width:9px;height:9px;border:1px solid var(--ink3);background:none}
+  .win-ctl .x{width:11px;height:11px;position:relative;background:none}
+  .win-ctl .x::before,.win-ctl .x::after{content:"";position:absolute;top:5px;left:0;width:11px;height:1px;background:var(--ink3)}
+  .win-ctl .x::before{transform:rotate(45deg)} .win-ctl .x::after{transform:rotate(-45deg)}
+
+  .body{flex:1;display:flex;min-height:0}
+
+  /* 左轨 */
+  .rail{width:172px;background:var(--sunk);border-right:1px solid var(--rule);padding:22px 0 16px;display:flex;flex-direction:column}
+  .rail a{display:block;position:relative;padding:9px 22px;font-size:13.5px;color:var(--ink2);text-decoration:none}
+  .rail a.on{color:var(--ink);font-weight:600}
+  .rail a.on::before{content:"";position:absolute;left:0;top:9px;bottom:9px;width:2px;background:var(--live)}
+  .rail .grp{margin-top:26px}
+  .rail-foot{margin-top:auto;padding:0 22px;font-size:11.5px;color:var(--ink3);line-height:1.7}
+
+  /* 主区 */
+  .main{flex:1;display:flex;flex-direction:column;min-width:0}
+  .toolbar{height:54px;display:flex;align-items:center;padding:0 46px;border-bottom:1px solid var(--rule);gap:20px}
+  .search{display:flex;align-items:center;gap:9px;flex:0 0 380px;border-bottom:1px solid var(--rule);padding-bottom:6px;color:var(--ink3);font-size:13px}
+  .search svg{width:14px;height:14px;stroke:var(--ink3);fill:none;stroke-width:1.7}
+  .tool-right{margin-left:auto;font-size:12px;color:var(--ink3)}
+
+  .content{flex:1;overflow:hidden;padding:34px 46px 0}
+  .display{font-family:var(--read);font-size:29px;font-weight:700;letter-spacing:.5px}
+  .count{margin-top:10px;font-size:12.5px;color:var(--ink2)}
+  .filters{display:flex;gap:24px;margin-top:24px;font-size:13px;color:var(--ink3)}
+  .filters b{color:var(--ink);font-weight:600;padding-bottom:5px;border-bottom:2px solid var(--ink)}
+
+  /* 处理中条 */
+  .livebar{margin-top:22px;padding:12px 0 14px;border-top:1px solid var(--rule);display:flex;align-items:center;gap:14px}
+  .livebar .lb-title{font-size:13.5px;color:var(--ink);font-weight:600}
+  .lb-right{margin-left:auto;display:flex;align-items:center;gap:13px}
+  .livebar .lb-state{font-size:12px;color:var(--live);font-variant-numeric:tabular-nums}
+  .bar{height:2px;background:var(--rule);width:170px;position:relative}
+  .bar i{position:absolute;left:0;top:0;bottom:0;width:62%;background:var(--live)}
+
+  /* 列表 */
+  .list{list-style:none;margin-top:6px}
+  .row{display:grid;grid-template-columns:44px 1fr auto;gap:22px;align-items:start;padding:20px 0;border-bottom:1px solid var(--rule)}
+  .row:last-child{border-bottom:none}
+  .frame{width:44px;height:78px;background:var(--frame);border-radius:3px;position:relative;display:flex;align-items:center;justify-content:center}
+  .frame svg{width:13px;height:13px;fill:var(--ink3);opacity:.75}
+  .frame .dur{position:absolute;left:0;right:0;bottom:5px;text-align:center;font-size:10px;color:var(--ink2);font-variant-numeric:tabular-nums}
+  .title{font-family:var(--read);font-size:17.5px;font-weight:700;line-height:1.5}
+  .sum{margin-top:7px;font-size:13px;color:var(--ink2);line-height:1.6}
+  .date{margin-top:9px;font-size:11.5px;color:var(--ink3)}
+  .state{padding-top:4px;font-size:12px;color:var(--ink3);white-space:nowrap}
+  .state.todo{color:var(--live)}
+</style>
+</head>
+<body>
+<div class="win">
+  <div class="titlebar">
+    <div class="mark">知</div>
+    <div class="win-title">抖音知识库</div>
+    <div class="win-ctl"><i></i><span class="sq"></span><span class="x"></span></div>
+  </div>
+
+  <div class="body">
+    <nav class="rail">
+      <a class="on" href="#">知识库</a>
+      <a href="#">快速获取</a>
+      <div class="grp">
+        <a href="#">环境准备</a>
+        <a href="#">设置</a>
+      </div>
+      <div class="rail-foot">本地转写已就绪<br>FunASR · GPU</div>
+    </nav>
+
+    <main class="main">
+      <div class="toolbar">
+        <div class="search">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.6-3.6"/></svg>
+          搜索标题、博主或转写正文
+        </div>
+        <div class="tool-right">共 12 篇</div>
+      </div>
+
+      <div class="content">
+        <h1 class="display">知识库</h1>
+        <p class="count">12 篇文章来自 5 位博主，本月新增 4 篇</p>
+
+        <div class="filters">
+          <b>全部</b><span>已总结</span><span>待总结</span>
+        </div>
+
+        <div class="livebar">
+          <span class="lb-title">Docker 和 K8s 到底什么区别</span>
+          <span class="lb-right">
+            <span class="bar"><i></i></span>
+            <span class="lb-state">正在转写 62%</span>
+          </span>
+        </div>
+
+        <ul class="list">
+          <li class="row">
+            <div class="frame"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg><span class="dur">07:24</span></div>
+            <div>
+              <div class="title">7 分钟搞懂 FDE 是什么</div>
+              <div class="sum">前端工程师、AI 产品经理与 FDE 之间的职责边界，以及为什么这个岗位突然变多。</div>
+              <div class="date">10 月 5 日</div>
+            </div>
+            <div class="state">已总结</div>
+          </li>
+          <li class="row">
+            <div class="frame"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg><span class="dur">12:08</span></div>
+            <div>
+              <div class="title">8 种 App 弹出交互的高级感做法</div>
+              <div class="sum">按钮菜单、卡片详情、确认弹窗、气泡提示、侧边抽屉等 8 种弹出形态与可直接使用的提示词。</div>
+              <div class="date">10 月 4 日</div>
+            </div>
+            <div class="state">已总结</div>
+          </li>
+          <li class="row">
+            <div class="frame"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg><span class="dur">15:33</span></div>
+            <div>
+              <div class="title">大模型 RAG 检索增强生成</div>
+              <div class="sum">从文档切分、向量检索到重排，企业知识库落地时要跨过的几道坎。</div>
+              <div class="date">9 月 28 日</div>
+            </div>
+            <div class="state">已总结</div>
+          </li>
+          <li class="row">
+            <div class="frame"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg><span class="dur">06:12</span></div>
+            <div>
+              <div class="title">什么是 MCP</div>
+              <div class="sum">模型上下文协议解决的是"工具怎么接给模型"，与传统 API 集成差在哪里。</div>
+              <div class="date">9 月 25 日</div>
+            </div>
+            <div class="state">待总结</div>
+          </li>
+          <li class="row">
+            <div class="frame"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg><span class="dur">11:50</span></div>
+            <div>
+              <div class="title">提示词工程的五条实用原则</div>
+              <div class="sum">把含糊需求写成可执行指令，减少来回追问与返工。</div>
+              <div class="date">9 月 20 日</div>
+            </div>
+            <div class="state">已总结</div>
+          </li>
+        </ul>
+      </div>
+    </main>
+  </div>
+</div>
+</body>
+</html>

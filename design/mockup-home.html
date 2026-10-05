@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>抖音知识库 · 主页升级 Mockup</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family:"Segoe UI Variable Display","Segoe UI","Microsoft YaHei UI",sans-serif;
+    background:#F3F3F3; color:#1B1B1F; width:1440px; height:960px; overflow:hidden;
+  }
+  .window { display:flex; height:960px; }
+  /* ---------- 侧栏 ---------- */
+  .sidebar {
+    width:232px; background:linear-gradient(180deg,#E9EDF2 0%,#E4E8EE 100%);
+    border-right:1px solid #D8DCE3; display:flex; flex-direction:column; padding:16px 12px;
+  }
+  .brand { display:flex; align-items:center; gap:10px; padding:4px 8px 16px; }
+  .brand-logo {
+    width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center;
+    background:linear-gradient(135deg,#0E7490 0%,#155E75 60%,#FE2C55 130%); color:#fff; font-weight:700; font-size:15px;
+  }
+  .brand-name { font-size:15px; font-weight:600; }
+  .nav { display:flex; flex-direction:column; gap:2px; }
+  .nav-item {
+    display:flex; align-items:center; gap:12px; padding:9px 12px; border-radius:6px;
+    font-size:13.5px; color:#3A3A42; cursor:pointer; position:relative;
+  }
+  .nav-item svg { width:18px; height:18px; stroke:#5A5A64; }
+  .nav-item.active { background:#fff; color:#0B5C74; font-weight:600; box-shadow:0 1px 2px rgba(0,0,0,.05); }
+  .nav-item.active svg { stroke:#0E7490; }
+  .nav-item.active::before {
+    content:""; position:absolute; left:-12px; top:9px; bottom:9px; width:3px;
+    border-radius:0 3px 3px 0; background:#0E7490;
+  }
+  .nav-sep { height:1px; background:#D8DCE3; margin:12px 8px; }
+  .sidebar-foot { margin-top:auto; font-size:11.5px; color:#7A7A84; padding:8px; }
+  .env-badge { display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:999px; background:#fff; border:1px solid #D8DCE3; font-size:12px; color:#0F7B3E; }
+  .dot { width:7px; height:7px; border-radius:50%; background:#16A34A; }
+  /* ---------- 主区 ---------- */
+  .main { flex:1; display:flex; flex-direction:column; min-width:0; }
+  .topbar {
+    height:52px; display:flex; align-items:center; gap:16px; padding:0 28px;
+    border-bottom:1px solid #E4E4E9; background:rgba(255,255,255,.7);
+  }
+  .search {
+    flex:1; max-width:520px; height:34px; display:flex; align-items:center; gap:8px;
+    background:#EDEDF2; border:1px solid transparent; border-radius:6px; padding:0 12px;
+    color:#7A7A84; font-size:13px;
+  }
+  .search svg { width:15px; height:15px; stroke:#8A8A94; }
+  .topbar-right { margin-left:auto; display:flex; align-items:center; gap:8px; }
+  .icon-btn {
+    width:34px; height:34px; border-radius:6px; display:flex; align-items:center; justify-content:center;
+    border:1px solid #E0E0E6; background:#fff;
+  }
+  .icon-btn svg { width:16px; height:16px; stroke:#4A4A54; }
+  .avatar { width:30px; height:30px; border-radius:50%; background:linear-gradient(135deg,#0E7490,#38BDF8); }
+  .content { flex:1; overflow:hidden; padding:24px 28px; }
+  .page-head { display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:18px; }
+  .page-head h1 { font-size:22px; font-weight:700; }
+  .page-head .sub { font-size:13px; color:#66666F; margin-top:4px; }
+  .btn-primary {
+    height:34px; padding:0 18px; border-radius:6px; background:#0E7490; color:#fff;
+    font-size:13px; font-weight:600; display:inline-flex; align-items:center; gap:8px;
+    box-shadow:0 1px 2px rgba(14,116,144,.4);
+  }
+  .btn-primary svg { width:14px; height:14px; stroke:#fff; }
+  /* 统计卡 */
+  .stats { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:22px; }
+  .stat {
+    background:#fff; border:1px solid #E7E7EC; border-radius:10px; padding:14px 16px;
+    box-shadow:0 1px 2px rgba(0,0,0,.03);
+  }
+  .stat .k { font-size:12px; color:#7A7A84; display:flex; align-items:center; gap:6px; }
+  .stat .k svg { width:13px; height:13px; stroke:#0E7490; }
+  .stat .v { font-size:24px; font-weight:700; margin-top:6px; font-variant-numeric:tabular-nums; }
+  .stat .v small { font-size:12px; font-weight:400; color:#8A8A94; margin-left:4px; }
+  /* 分区标题 */
+  .section-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+  .section-head h2 { font-size:15px; font-weight:600; }
+  .link { font-size:12.5px; color:#0E7490; cursor:pointer; }
+  /* 文章卡 */
+  .cards { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
+  .card {
+    background:#fff; border:1px solid #E7E7EC; border-radius:10px; overflow:hidden;
+    box-shadow:0 1px 2px rgba(0,0,0,.03);
+  }
+  .thumb { height:88px; position:relative; display:flex; align-items:center; justify-content:center; }
+  .thumb svg { width:26px; height:26px; fill:rgba(255,255,255,.9); }
+  .thumb .dur {
+    position:absolute; right:8px; bottom:8px; background:rgba(0,0,0,.55); color:#fff;
+    font-size:11px; padding:2px 6px; border-radius:4px; font-variant-numeric:tabular-nums;
+  }
+  .t1 { background:linear-gradient(135deg,#0E7490,#22D3EE); }
+  .t2 { background:linear-gradient(135deg,#7C3AED,#C4B5FD); }
+  .t3 { background:linear-gradient(135deg,#B45309,#FCD34D); }
+  .t4 { background:linear-gradient(135deg,#BE123C,#FDA4AF); }
+  .t5 { background:linear-gradient(135deg,#0F766E,#5EEAD4); }
+  .t6 { background:linear-gradient(135deg,#1D4ED8,#93C5FD); }
+  .card-body { padding:12px 14px 14px; }
+  .card-title { font-size:13.5px; font-weight:600; line-height:1.45; height:39px; overflow:hidden; }
+  .tags { display:flex; gap:6px; margin:8px 0 10px; }
+  .tag { font-size:11px; padding:2px 8px; border-radius:999px; background:#EFF6F8; color:#0B5C74; border:1px solid #D5E7EC; }
+  .card-meta { display:flex; align-items:center; justify-content:space-between; font-size:11.5px; color:#8A8A94; }
+  .badge { font-size:11px; padding:2px 8px; border-radius:999px; font-weight:600; }
+  .badge.done { background:#E7F6EC; color:#0F7B3E; }
+  .badge.transcribed { background:#FEF6E7; color:#9A6700; }
+</style>
+</head>
+<body>
+<div class="window">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-logo">知</div>
+      <div class="brand-name">抖音知识库</div>
+    </div>
+    <nav class="nav">
+      <div class="nav-item active">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M3 10.5 12 3l9 7.5V21H3z"/><path d="M9 21v-6h6v6"/></svg>首页</div>
+      <div class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 21h16"/></svg>快速获取</div>
+      <div class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/><circle cx="12" cy="12" r="3.5"/></svg>AI 总结</div>
+      <div class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V4H6.5A2.5 2.5 0 0 0 4 6.5v13z"/><path d="M8 7h8M8 10h6"/></svg>知识库</div>
+      <div class="nav-sep"></div>
+      <div class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M14.7 6.3a4 4 0 1 0 5 5L21 21l-3 0-8.6-8.6a4 4 0 0 0 5.3-6.1z"/></svg>环境准备</div>
+      <div class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2V21a2 2 0 1 1-4 0v-.1A1.7 1.7 0 0 0 7 19.4a1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0-1.2-2.9H1a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 2.6 7a1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 2.9-1.2V1a2 2 0 1 1 4 0v.1A1.7 1.7 0 0 0 17 2.6a1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0 1.2 2.9H23a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" transform="scale(0.86) translate(2 2)"/></svg>设置</div>
+    </nav>
+    <div class="sidebar-foot">
+      <div class="env-badge"><span class="dot"></span>GPU 转写 · 环境就绪</div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        搜索文章、博主、标签或转写内容…
+      </div>
+      <div class="topbar-right">
+        <div class="icon-btn"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></div>
+        <div class="icon-btn"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></div>
+        <div class="avatar"></div>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="page-head">
+        <div>
+          <h1>我的知识库</h1>
+          <div class="sub">已沉淀 12 篇文章 · 来自 5 位博主 · 本月新增 4 篇</div>
+        </div>
+        <div class="btn-primary">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+          粘贴新链接
+        </div>
+      </div>
+
+      <div class="stats">
+        <div class="stat"><div class="k"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V4H6.5A2.5 2.5 0 0 0 4 6.5v13z"/></svg>知识文章</div><div class="v">12<small>篇</small></div></div>
+        <div class="stat"><div class="k"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m10 9 5 3-5 3z"/></svg>已下载视频</div><div class="v">15<small>个</small></div></div>
+        <div class="stat"><div class="k"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>累计时长</div><div class="v">3.2<small>小时</small></div></div>
+        <div class="stat"><div class="k"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/><circle cx="12" cy="12" r="3.5"/></svg>本月新增</div><div class="v">4<small>篇</small></div></div>
+      </div>
+
+      <div class="section-head">
+        <h2>最近沉淀</h2>
+        <span class="link">查看全部 →</span>
+      </div>
+
+      <div class="cards">
+        <div class="card">
+          <div class="thumb t1"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg><span class="dur">07:24</span></div>
+          <div class="card-body">
+            <div class="card-title">7 分钟搞懂 FDE 是什么：前端开发工程师的进阶方向</div>
+            <div class="tags"><span class="tag">#AI产品经理</span><span class="tag">#职业发展</span></div>
+            <div class="card-meta"><span>10-05 · 已总结</span><span class="badge done">文章就绪</span></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="thumb t2"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg><span class="dur">12:08</span></div>
+          <div class="card-body">
+            <div class="card-title">8 种 App 高级感弹出交互：附可直接使用的 AI 提示词</div>
+            <div class="tags"><span class="tag">#UI设计</span><span class="tag">#交互</span></div>
+            <div class="card-meta"><span>10-04 · 已总结</span><span class="badge done">文章就绪</span></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="thumb t3"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg><span class="dur">09:41</span></div>
+          <div class="card-body">
+            <div class="card-title">Docker 和 K8s 到底什么区别？一篇讲清容器与编排</div>
+            <div class="tags"><span class="tag">#Docker</span><span class="tag">#K8s运维</span></div>
+            <div class="card-meta"><span>10-02 · 已转写</span><span class="badge transcribed">待总结</span></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="thumb t4"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg><span class="dur">15:33</span></div>
+          <div class="card-body">
+            <div class="card-title">大模型 RAG 检索增强生成：企业知识库落地的完整路径</div>
+            <div class="tags"><span class="tag">#大模型</span><span class="tag">#RAG</span></div>
+            <div class="card-meta"><span>09-28 · 已总结</span><span class="badge done">文章就绪</span></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="thumb t5"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg><span class="dur">06:12</span></div>
+          <div class="card-body">
+            <div class="card-title">什么是 MCP？模型上下文协议十分钟入门</div>
+            <div class="tags"><span class="tag">#MCP</span><span class="tag">#AI工具</span></div>
+            <div class="card-meta"><span>09-25 · 已总结</span><span class="badge done">文章就绪</span></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="thumb t6"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg><span class="dur">11:50</span></div>
+          <div class="card-body">
+            <div class="card-title">提示词工程的五个黄金法则，让 AI 输出质量翻倍</div>
+            <div class="tags"><span class="tag">#提示词</span><span class="tag">#效率</span></div>
+            <div class="card-meta"><span>09-20 · 已总结</span><span class="badge done">文章就绪</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+</body>
+</html>

@@ -34,6 +34,12 @@ import time
 
 PREFIX_SETUP = "@@SETUP@@"
 PREFIX_ENV = "@@ENV@@"
+PIP_PROGRESS_RE = re.compile(
+    r"(\d+(?:\.\d+)?)\s*/\s*(\d+(?:\.\d+)?)\s*([KMG]?B)\s+"
+    r"(\d+(?:\.\d+)?)\s*([KMG]?B)/s\s+(\d+:\d{2}(?::\d{2})?)",
+    re.IGNORECASE,
+)
+PIP_RAW_RE = re.compile(r"Progress\s+(\d+)\s+of\s+(\d+)", re.IGNORECASE)
 
 MODEL_IDS = {
     "asr": "iic/speech_paraformer-large-vad-punc_asr_nat-zh-cn-16k-common-vocab8404-pytorch",
@@ -47,7 +53,9 @@ MODEL_LABELS = {
 }
 
 # 依赖包：sentencepiece 必须锁 0.1.99，0.2.x 在 Windows 上加载 BPE 词表会原生崩溃。
-BASE_PACKAGES = ["funasr", "modelscope", "playwright", "curl_cffi"]
+# playwright 必须锁版本：浏览器内核版本由它决定，升级会导致预打包的内核失配。
+PLAYWRIGHT_VERSION = "1.63.0"
+BASE_PACKAGES = ["funasr", "modelscope", f"playwright=={PLAYWRIGHT_VERSION}", "curl_cffi"]
 SENTENCEPIECE = "sentencepiece==0.1.99"
 TORCH_VERSION = "2.6.0"
 TORCH_CUDA_TAG = "cu124"
@@ -58,8 +66,10 @@ PYPI_MIRRORS = [
     ["-i", "https://mirrors.aliyun.com/pypi/simple/"],
     ["-i", "https://pypi.org/simple"],
 ]
+# CUDA 版 PyTorch 走国内镜像；SJTU 的 pytorch-wheels 页面已不再直接提供文件链接，故移除。
+# 顺序按国内实测速度排列：阿里云 CDN 最快，官方源仅作最后兜底。
 TORCH_CUDA_MIRRORS = [
-    ["-f", "https://mirror.sjtu.edu.cn/pytorch-wheels/cu124/",
+    ["-f", "https://mirrors.aliyun.com/pytorch-wheels/cu124/",
      "-i", "https://pypi.tuna.tsinghua.edu.cn/simple"],
     ["-f", "https://mirrors.aliyun.com/pytorch-wheels/cu124/",
      "-i", "https://mirrors.aliyun.com/pypi/simple/"],
@@ -255,6 +265,7 @@ def build_report(args) -> dict:
         "browserReady": False,
         "modelsDir": models_dir,
         "models": {},
+        "requestedDevice": "cuda:0" if args.device == "gpu" else "cpu",
         "device": "",
         "ready": False,
         "issues": [],
@@ -287,6 +298,8 @@ def build_report(args) -> dict:
         report["issues"].append("缺少 funasr")
     if not report["packages"].get("torch"):
         report["issues"].append("缺少 torch")
+    if args.device == "gpu" and not report["torchCuda"]:
+        report["issues"].append("CUDA 不可用（当前 PyTorch 为 CPU 版或驱动不可用）")
     if not report["ffmpeg"]:
         report["issues"].append("未找到 ffmpeg")
     if not report["browserReady"]:
@@ -332,26 +345,135 @@ class _Heartbeat:
         return False
 
 
+def _fmt_speed(bps: float) -> str:
+    if bps >= 1048576:
+        return "%.1f MB/s" % (bps / 1048576.0)
+    if bps >= 1024:
+        return "%.0f KB/s" % (bps / 1024.0)
+    return "%.0f B/s" % bps
+
+
+def _fmt_eta(seconds: float) -> str:
+    seconds = max(seconds, 0.0)
+    if seconds < 60:
+        return "%d 秒" % int(seconds)
+    if seconds < 3600:
+        return "%d 分 %d 秒" % (int(seconds // 60), int(seconds % 60))
+    return "%d 时 %d 分" % (int(seconds // 3600), int(seconds % 3600 // 60))
+
+
+class _DirGrowth:
+    """按目录体积增长估算下载速度与剩余时间。
+
+    用于自身不汇报进度的下载器（Playwright 的浏览器下载）。
+    """
+
+    def __init__(self, step, start, label, watch_dir, total_hint=0):
+        self.step, self.start, self.label = step, start, label
+        self.watch_dir, self.total_hint = watch_dir, total_hint
+        self._stop = threading.Event()
+        self._thread = None
+
+    def _size(self):
+        total = 0
+        for root, _dirs, files in os.walk(self.watch_dir):
+            for name in files:
+                try:
+                    total += os.path.getsize(os.path.join(root, name))
+                except OSError:
+                    pass
+        return total
+
+    def __enter__(self):
+        def loop():
+            t0 = time.time()
+            base = float(self._size())
+            while not self._stop.wait(2):
+                elapsed = max(time.time() - t0, 0.001)
+                done = max(self._size() - base, 0)
+                speed = done / elapsed
+                if speed <= 0:
+                    emit(self.step, self.start, f"{self.label}（已用时 {int(elapsed)} 秒）")
+                    continue
+                text = f"{self.label}：已下载 {done / 1048576.0:.1f} MB"
+                if self.total_hint > 0 and done < self.total_hint:
+                    eta = (self.total_hint - done) / speed
+                    text += f"｜{_fmt_speed(speed)}｜剩余约 {_fmt_eta(eta)}"
+                else:
+                    text += f"｜{_fmt_speed(speed)}"
+                emit(self.step, self.start, text)
+        self._thread = threading.Thread(target=loop, daemon=True)
+        self._thread.start()
+        return self
+
+    def __exit__(self, *exc):
+        self._stop.set()
+        return False
+
+
 def pip_install(exe, packages, index_args, env, step, start, end, label, extra_args=None):
     """执行一次 pip install，成功返回 True。"""
     cmd = [exe, "-m", "pip", "install", "--no-input", "--disable-pip-version-check",
-           "--retries", "5", "--timeout", "60"]
+           "--progress-bar", "raw", "--retries", "5", "--timeout", "60"]
     cmd += list(extra_args or [])
     cmd += list(packages) + list(index_args)
     emit(step, start, f"{label}：正在下载并安装…")
     print("$ " + " ".join(cmd), flush=True)
     try:
         proc = subprocess.Popen(cmd, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                                text=True, encoding="utf-8", errors="replace", bufsize=1)
+                                bufsize=0)
     except OSError as exc:
         emit(step, start, f"{label}：无法启动 pip（{exc}）", level="error")
         return False
 
+    state = {"started": time.monotonic(), "done": 0, "label": label}
+
+    def handle_pip_line(line):
+        line = line.strip()
+        if not line:
+            return
+        match = PIP_PROGRESS_RE.search(line)
+        if match:
+            done = float(match.group(1))
+            total = float(match.group(2))
+            file_percent = min(done / total, 1.0) if total > 0 else 0.0
+            overall = start + (end - start) * file_percent
+            message = (f"{label}：{file_percent * 100:.0f}%｜"
+                       f"{match.group(4)} {match.group(5)}/s｜剩余 {match.group(6)}")
+            emit(step, overall, message)
+            return
+        raw = PIP_RAW_RE.search(line)
+        if raw:
+            done = int(raw.group(1))
+            total = int(raw.group(2))
+            if done <= 0:
+                return
+            if done < state["done"]:  # 新文件，重置计时
+                state["started"] = time.monotonic()
+            state["done"] = done
+            if total > 0:
+                elapsed = max(time.monotonic() - state["started"], 0.001)
+                speed = done / elapsed
+                file_percent = min(done / total, 1.0)
+                eta = (total - done) / speed if speed > 0 else 0.0
+                emit(step, start + (end - start) * file_percent,
+                     f"{label}：{file_percent * 100:.0f}%｜{_fmt_speed(speed)}｜剩余 {_fmt_eta(eta)}")
+            return
+        emit(step, start, line[:220])
+
     try:
-        for line in proc.stdout or []:
-            line = line.strip()
-            if line:
-                emit(step, start, line[:220])
+        buffer = ""
+        while True:
+            chunk = proc.stdout.read(4096) if proc.stdout else b""
+            if not chunk:
+                break
+            buffer += chunk.decode("utf-8", "replace")
+            parts = re.split(r"[\r\n]+", buffer)
+            buffer = parts.pop()
+            for line in parts:
+                handle_pip_line(line)
+        if buffer:
+            handle_pip_line(buffer)
         proc.wait()
     except Exception as exc:  # 用户中断等
         proc.kill()
@@ -426,12 +548,16 @@ def install_deps(args, exe, env) -> bool:
     start, end = STEP_RANGES["deps"]
     missing = [name for name in BASE_PACKAGES if not pkg_version(exe, name, env=env)]
     need_sp = pkg_version(exe, "sentencepiece", env=env) != "0.1.99"
+    # playwright 版本与预打包的浏览器内核严格绑定，版本不符时必须重装到锁定版。
+    need_pw = pkg_version(exe, "playwright", env=env) != PLAYWRIGHT_VERSION
 
-    if not missing and not need_sp:
+    if not missing and not need_sp and not need_pw:
         emit("deps", end, "依赖包已齐全，跳过")
         return True
 
     packages = list(missing) + ([SENTENCEPIECE] if need_sp else [])
+    if need_pw and f"playwright=={PLAYWRIGHT_VERSION}" not in packages:
+        packages.append(f"playwright=={PLAYWRIGHT_VERSION}")
     emit("deps", start + 1, "正在安装依赖：" + "、".join(packages))
     with _Heartbeat("deps", start + 2, end - 2, "安装依赖包"):
         for index_args in PYPI_MIRRORS:
@@ -467,7 +593,10 @@ def _install_browser_targets(exe, env, host, targets, start, end) -> bool:
             "import subprocess,sys\n"
             "sys.exit(subprocess.call([sys.executable,'-m','playwright','install',%r]))\n" % target
         )
-        with _Heartbeat("browser", start + 2, end - 2, "下载 Playwright " + target):
+        hint = (430 if target == "chromium" else 270) * 1048576
+        local_appdata = os.environ.get("LOCALAPPDATA") or os.path.expanduser("~")
+        watch_dir = attempt.get("PLAYWRIGHT_BROWSERS_PATH") or os.path.join(local_appdata, "ms-playwright")
+        with _DirGrowth("browser", start + 2, "下载 Playwright " + target, watch_dir, hint):
             rc, out = python_of(exe, code, env=attempt, timeout=3600)
         if rc != 0:
             return False
@@ -540,11 +669,11 @@ def install_models(args, exe, env) -> bool:
 def download_one_model(exe, env, model_id, models_dir, lo, hi, label) -> bool:
     """用 modelscope.snapshot_download 下载单个模型，并按文件进度上报。"""
     code = """
-import json, os, sys, threading
+import json, os, sys, threading, time
 from modelscope.hub.snapshot_download import snapshot_download
 from modelscope.hub.callback import ProgressCallback
 
-state = {"sizes": {}, "done": {}, "lock": threading.Lock(), "last": -1.0}
+state = {"sizes": {}, "done": {}, "lock": threading.Lock(), "last": -1.0, "started": time.monotonic()}
 lo, hi = float(sys.argv[2]), float(sys.argv[3])
 label = sys.argv[4]
 
@@ -557,10 +686,16 @@ def report(force=False):
     pct = lo + (hi - lo) * min(done / total, 0.99)
     if force or pct - state["last"] >= 1.0:
         state["last"] = pct
+        elapsed = max(time.monotonic() - state["started"], 0.001)
+        speed = done / elapsed
+        eta = (total - done) / speed if total > done and speed > 0 else 0.0
+        speed_text = "%.1f MB/s" % (speed / 1048576.0) if speed >= 1048576 else "%.0f KB/s" % (speed / 1024.0)
+        eta_text = "%.0f 秒" % eta if eta < 60 else "%d 分 %d 秒" % (int(eta // 60), int(eta % 60))
         print("@@SETUP@@" + json.dumps(
             {"step": "models", "percent": round(pct, 1),
-             "message": label + "：%.0f%%（%.1f/%.1f MB）" % (
-                 min(done / total, 1) * 100, done / 1048576.0, total / 1048576.0),
+             "message": label + "：%.0f%%（%.1f/%.1f MB｜%s｜剩余约 %s）" % (
+                 min(done / total, 1) * 100, done / 1048576.0, total / 1048576.0,
+                 speed_text, eta_text),
              "level": "info"}, ensure_ascii=False), flush=True)
 
 class Cb(ProgressCallback):
@@ -624,6 +759,13 @@ def run_install(args) -> int:
     if not os.path.isfile(exe):
         emit("verify", 0, f"Python 解释器不存在：{exe}", level="error")
         return 2
+
+    initial = build_report(args)
+    if initial["ready"]:
+        emit("verify", STEP_RANGES["verify"][1], "环境已通过自检，无需再次准备。")
+        emit_report(initial)
+        emit("done", 100, "环境已通过自检，无需再次准备。", ready=True)
+        return 0
 
     ok = True
     emit("torch", 0, "开始环境准备…")

@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>抖音知识库 · 快速获取</title>
+<style>
+  :root{
+    --paper:#F4F5F2; --sunk:#EAEDE8; --ink:#1B2430; --ink2:#59636F;
+    --ink3:#8B949E; --rule:#DCE0DA; --live:#0FB5BE; --frame:#DFE3DD;
+    --ui:"Segoe UI Variable Text","Segoe UI","Microsoft YaHei UI",sans-serif;
+    --read:"Source Han Serif SC","Noto Serif SC","Songti SC","SimSun",serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{width:1440px;height:960px;overflow:hidden;background:var(--paper);
+       color:var(--ink);font-family:var(--ui);-webkit-font-smoothing:antialiased}
+  .win{height:960px;display:flex;flex-direction:column}
+
+  .titlebar{height:36px;display:flex;align-items:center;padding:0 12px 0 14px;gap:9px;border-bottom:1px solid var(--rule)}
+  .mark{width:21px;height:21px;background:var(--ink);color:var(--paper);display:flex;align-items:center;justify-content:center;
+        font-family:var(--read);font-size:13px;line-height:1;border-radius:3px}
+  .win-title{font-size:12.5px;color:var(--ink2)}
+  .win-ctl{margin-left:auto;display:flex;gap:18px;align-items:center}
+  .win-ctl i{display:block;width:11px;height:1px;background:var(--ink3)}
+  .win-ctl .sq{width:9px;height:9px;border:1px solid var(--ink3)}
+  .win-ctl .x{width:11px;height:11px;position:relative}
+  .win-ctl .x::before,.win-ctl .x::after{content:"";position:absolute;top:5px;left:0;width:11px;height:1px;background:var(--ink3)}
+  .win-ctl .x::before{transform:rotate(45deg)} .win-ctl .x::after{transform:rotate(-45deg)}
+
+  .body{flex:1;display:flex;min-height:0}
+  .rail{width:172px;background:var(--sunk);border-right:1px solid var(--rule);padding:22px 0 16px;display:flex;flex-direction:column}
+  .rail a{display:block;position:relative;padding:9px 22px;font-size:13.5px;color:var(--ink2);text-decoration:none}
+  .rail a.on{color:var(--ink);font-weight:600}
+  .rail a.on::before{content:"";position:absolute;left:0;top:9px;bottom:9px;width:2px;background:var(--live)}
+  .rail .grp{margin-top:26px}
+  .rail-foot{margin-top:auto;padding:0 22px;font-size:11.5px;color:var(--ink3);line-height:1.7}
+
+  .main{flex:1;overflow:hidden;padding:36px 46px 0}
+  .display{font-family:var(--read);font-size:29px;font-weight:700;letter-spacing:.5px}
+  .lede{margin-top:10px;font-size:13px;color:var(--ink2)}
+
+  /* 输入 */
+  .capture{margin-top:28px;max-width:760px}
+  .capture textarea{
+    width:100%;height:84px;border:none;border-bottom:1px solid var(--rule);background:none;resize:none;
+    font-family:var(--read);font-size:15px;line-height:1.8;color:var(--ink);outline:none;padding:4px 0 10px
+  }
+  .capture textarea::placeholder{color:var(--ink3)}
+  .cap-row{display:flex;align-items:center;gap:22px;margin-top:18px}
+  .btn-ink{background:var(--ink);color:#F4F5F2;font-size:13px;padding:10px 20px;border-radius:4px;font-weight:600}
+  .tlink{font-size:12.5px;color:var(--ink2)}
+  .cap-hint{margin-left:auto;font-size:11.5px;color:var(--ink3)}
+
+  /* 纵向步骤轴 */
+  .pipe{margin-top:44px;max-width:760px}
+  .pipe .ph{font-size:13px;color:var(--ink2);padding-bottom:14px;border-bottom:1px solid var(--rule)}
+  .pipe .ph b{color:var(--ink);font-weight:600}
+  .steps{position:relative;padding-left:26px;margin-top:6px}
+  .steps::before{content:"";position:absolute;left:4px;top:22px;bottom:26px;width:1px;background:var(--rule)}
+  .step{position:relative;display:flex;align-items:baseline;gap:16px;padding:16px 0}
+  .dot{position:absolute;left:-26px;top:20px;width:9px;height:9px;border-radius:50%;background:var(--paper);border:1px solid var(--ink3)}
+  .step.done .dot{background:var(--ink);border-color:var(--ink)}
+  .step.now .dot{background:var(--live);border-color:var(--live);box-shadow:0 0 0 4px rgba(15,181,190,.16)}
+  .s-name{font-size:13.5px;color:var(--ink)}
+  .step.pending .s-name{color:var(--ink3)}
+  .step.now .s-name{font-weight:600}
+  .s-detail{font-size:12px;color:var(--ink3);font-variant-numeric:tabular-nums}
+  .step.now .s-detail{color:var(--live)}
+  .step-body{flex:1}
+  .step-line{display:flex;align-items:baseline;gap:16px}
+  .sbar{display:block;position:relative;height:2px;width:236px;background:var(--rule);margin-top:9px}
+  .sbar i{position:absolute;left:0;top:0;bottom:0;width:62%;background:var(--live)}
+
+  /* 最近任务 */
+  .recent{margin-top:40px;max-width:760px}
+  .recent .rh{font-size:12px;color:var(--ink3);padding-bottom:10px;border-bottom:1px solid var(--rule)}
+  .task{display:grid;grid-template-columns:30px 1fr auto;gap:16px;align-items:center;padding:15px 0;border-bottom:1px solid var(--rule)}
+  .task:last-child{border-bottom:none}
+  .sframe{width:30px;height:53px;background:var(--frame);border-radius:2px;position:relative;display:flex;align-items:center;justify-content:center}
+  .sframe svg{width:9px;height:9px;fill:var(--ink3);opacity:.7}
+  .t-title{font-size:13px;color:var(--ink)}
+  .t-sub{font-size:11.5px;color:var(--ink3);margin-top:4px}
+  .t-right{font-size:11.5px;color:var(--ink3)}
+</style>
+</head>
+<body>
+<div class="win">
+  <div class="titlebar">
+    <div class="mark">知</div>
+    <div class="win-title">抖音知识库</div>
+    <div class="win-ctl"><i></i><span class="sq"></span><span class="x"></span></div>
+  </div>
+
+  <div class="body">
+    <nav class="rail">
+      <a href="#">知识库</a>
+      <a class="on" href="#">快速获取</a>
+      <div class="grp">
+        <a href="#">环境准备</a>
+        <a href="#">设置</a>
+      </div>
+      <div class="rail-foot">本地转写已就绪<br>FunASR · GPU</div>
+    </nav>
+
+    <main class="main">
+      <h1 class="display">快速获取</h1>
+      <p class="lede">粘贴分享文案，视频会下载到本地，再用本地模型转写成文字稿。</p>
+
+      <div class="capture">
+        <textarea placeholder="粘贴抖音分享文案或链接，例如：Docker和K8s到底什么区别 https://v.douyin.com/xxxxxxx/"></textarea>
+        <div class="cap-row">
+          <span class="btn-ink">开始下载并转写</span>
+          <span class="tlink">清空</span>
+          <span class="tlink">刷新 Cookie</span>
+          <span class="cap-hint">Cookie 约 7 天失效，下载失败时再刷新</span>
+        </div>
+      </div>
+
+      <div class="pipe">
+        <div class="ph">正在处理　<b>Docker 和 K8s 到底什么区别</b></div>
+        <div class="steps">
+          <div class="step done">
+            <span class="dot"></span>
+            <span class="s-name">下载视频</span>
+            <span class="s-detail">48.2 MB，已存入本地</span>
+          </div>
+          <div class="step done">
+            <span class="dot"></span>
+            <span class="s-name">提取音频</span>
+            <span class="s-detail">16 kHz 单声道 WAV</span>
+          </div>
+          <div class="step now">
+            <span class="dot"></span>
+            <div class="step-body">
+              <div class="step-line">
+                <span class="s-name">转写文字</span>
+                <span class="s-detail">FunASR Paraformer，GPU 加速，62%</span>
+              </div>
+              <span class="sbar"><i></i></span>
+            </div>
+          </div>
+          <div class="step pending">
+            <span class="dot"></span>
+            <span class="s-name">生成文稿</span>
+            <span class="s-detail">等待转写完成</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="recent">
+        <div class="rh">最近完成</div>
+        <div class="task">
+          <div class="sframe"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>
+          <div>
+            <div class="t-title">7 分钟搞懂 FDE 是什么</div>
+            <div class="t-sub">已转写并生成文章</div>
+          </div>
+          <div class="t-right">今天 02:47</div>
+        </div>
+        <div class="task">
+          <div class="sframe"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>
+          <div>
+            <div class="t-title">8 种 App 弹出交互的高级感做法</div>
+            <div class="t-sub">已转写并生成文章</div>
+          </div>
+          <div class="t-right">昨天 21:15</div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+</body>
+</html>

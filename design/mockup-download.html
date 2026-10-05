@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>抖音知识库 · 快速获取页升级 Mockup</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family:"Segoe UI Variable Display","Segoe UI","Microsoft YaHei UI",sans-serif;
+    background:#F3F3F3; color:#1B1B1F; width:1440px; height:960px; overflow:hidden;
+  }
+  .window { display:flex; height:960px; }
+  .sidebar {
+    width:232px; background:linear-gradient(180deg,#E9EDF2 0%,#E4E8EE 100%);
+    border-right:1px solid #D8DCE3; display:flex; flex-direction:column; padding:16px 12px;
+  }
+  .brand { display:flex; align-items:center; gap:10px; padding:4px 8px 16px; }
+  .brand-logo {
+    width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center;
+    background:linear-gradient(135deg,#0E7490 0%,#155E75 60%,#FE2C55 130%); color:#fff; font-weight:700; font-size:15px;
+  }
+  .brand-name { font-size:15px; font-weight:600; }
+  .nav { display:flex; flex-direction:column; gap:2px; }
+  .nav-item {
+    display:flex; align-items:center; gap:12px; padding:9px 12px; border-radius:6px;
+    font-size:13.5px; color:#3A3A42; cursor:pointer; position:relative;
+  }
+  .nav-item svg { width:18px; height:18px; stroke:#5A5A64; }
+  .nav-item.active { background:#fff; color:#0B5C74; font-weight:600; box-shadow:0 1px 2px rgba(0,0,0,.05); }
+  .nav-item.active svg { stroke:#0E7490; }
+  .nav-item.active::before {
+    content:""; position:absolute; left:-12px; top:9px; bottom:9px; width:3px;
+    border-radius:0 3px 3px 0; background:#0E7490;
+  }
+  .nav-sep { height:1px; background:#D8DCE3; margin:12px 8px; }
+  .sidebar-foot { margin-top:auto; font-size:11.5px; color:#7A7A84; padding:8px; }
+  .env-badge { display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:999px; background:#fff; border:1px solid #D8DCE3; font-size:12px; color:#0F7B3E; }
+  .dot { width:7px; height:7px; border-radius:50%; background:#16A34A; }
+  .main { flex:1; display:flex; flex-direction:column; min-width:0; }
+  .topbar {
+    height:52px; display:flex; align-items:center; gap:16px; padding:0 28px;
+    border-bottom:1px solid #E4E4E9; background:rgba(255,255,255,.7);
+  }
+  .search {
+    flex:1; max-width:520px; height:34px; display:flex; align-items:center; gap:8px;
+    background:#EDEDF2; border:1px solid transparent; border-radius:6px; padding:0 12px;
+    color:#7A7A84; font-size:13px;
+  }
+  .search svg { width:15px; height:15px; stroke:#8A8A94; }
+  .topbar-right { margin-left:auto; display:flex; align-items:center; gap:8px; }
+  .icon-btn { width:34px; height:34px; border-radius:6px; display:flex; align-items:center; justify-content:center; border:1px solid #E0E0E6; background:#fff; }
+  .icon-btn svg { width:16px; height:16px; stroke:#4A4A54; }
+  .avatar { width:30px; height:30px; border-radius:50%; background:linear-gradient(135deg,#0E7490,#38BDF8); }
+  .content { flex:1; overflow:hidden; padding:24px 28px; }
+  .page-head { margin-bottom:16px; }
+  .page-head h1 { font-size:22px; font-weight:700; }
+  .page-head .sub { font-size:13px; color:#66666F; margin-top:4px; }
+  .card {
+    background:#fff; border:1px solid #E7E7EC; border-radius:10px;
+    box-shadow:0 1px 2px rgba(0,0,0,.03);
+  }
+  /* 输入区 */
+  .input-card { padding:16px 18px; margin-bottom:16px; }
+  .input-card textarea {
+    width:100%; height:72px; resize:none; border:1px solid #E0E0E6; border-radius:8px;
+    background:#FAFAFC; padding:10px 12px; font:13px/1.5 "Segoe UI","Microsoft YaHei UI",sans-serif; color:#1B1B1F; outline:none;
+  }
+  .input-card textarea::placeholder { color:#9A9AA4; }
+  .input-row { display:flex; align-items:center; gap:10px; margin-top:12px; }
+  .btn-primary {
+    height:34px; padding:0 20px; border-radius:6px; background:#0E7490; color:#fff;
+    font-size:13px; font-weight:600; display:inline-flex; align-items:center; gap:8px;
+    box-shadow:0 1px 2px rgba(14,116,144,.4);
+  }
+  .btn-ghost {
+    height:34px; padding:0 14px; border-radius:6px; background:#fff; color:#3A3A42;
+    font-size:13px; border:1px solid #E0E0E6; display:inline-flex; align-items:center; gap:6px;
+  }
+  .hint { margin-left:auto; font-size:12px; color:#9A6700; display:flex; align-items:center; gap:6px; }
+  .hint svg { width:13px; height:13px; stroke:#9A6700; }
+  /* 管线进度 */
+  .pipe-card { padding:18px 20px; margin-bottom:16px; }
+  .pipe-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+  .pipe-head h3 { font-size:14px; font-weight:600; }
+  .pipe-head .task { font-size:12px; color:#8A8A94; }
+  .steps { display:grid; grid-template-columns:repeat(4,1fr); gap:0; }
+  .step { display:flex; flex-direction:column; gap:8px; position:relative; padding-right:16px; }
+  .step::after {
+    content:""; position:absolute; top:13px; left:32px; right:8px; height:2px; background:#E5E5EA; border-radius:1px;
+  }
+  .step.done::after { background:#0E7490; }
+  .step:last-child::after { display:none; }
+  .step-ic {
+    width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    background:#E5E5EA; z-index:1;
+  }
+  .step.done .step-ic { background:#0E7490; }
+  .step.done .step-ic svg { width:13px; height:13px; stroke:#fff; stroke-width:2.6; }
+  .step.now .step-ic { background:#fff; border:2px solid #0E7490; }
+  .step.now .step-ic .spin { width:12px; height:12px; border:2px solid #CDE7EE; border-top-color:#0E7490; border-radius:50%; }
+  .step .s-name { font-size:12.5px; font-weight:600; }
+  .step.now .s-name { color:#0B5C74; }
+  .step .s-detail { font-size:11.5px; color:#8A8A94; }
+  .step.now .s-detail { color:#0B5C74; }
+  .mini-progress { height:4px; border-radius:2px; background:#E5E5EA; margin-top:4px; width:80%; overflow:hidden; }
+  .mini-progress i { display:block; height:100%; width:62%; border-radius:2px; background:#0E7490; }
+  /* 结果卡 */
+  .result-card { padding:0; overflow:hidden; margin-bottom:16px; }
+  .result-head {
+    display:flex; align-items:center; gap:10px; padding:12px 18px; border-bottom:1px solid #EDEDF2;
+    background:#FAFBFC;
+  }
+  .result-head h3 { font-size:13.5px; font-weight:600; }
+  .badge { font-size:11px; padding:2px 8px; border-radius:999px; font-weight:600; }
+  .badge.done { background:#E7F6EC; color:#0F7B3E; }
+  .result-actions { margin-left:auto; display:flex; gap:8px; }
+  .result-body { padding:14px 18px; font-size:12.5px; line-height:1.8; color:#3A3A42; max-height:150px; overflow:hidden; position:relative; }
+  .result-body::after {
+    content:""; position:absolute; left:0; right:0; bottom:0; height:44px;
+    background:linear-gradient(180deg,rgba(255,255,255,0),#fff);
+  }
+  /* 最近任务 */
+  .recent h3 { font-size:14px; font-weight:600; margin-bottom:10px; }
+  .task-row {
+    display:flex; align-items:center; gap:12px; padding:11px 16px; background:#fff;
+    border:1px solid #E7E7EC; border-radius:8px; margin-bottom:8px;
+  }
+  .task-ic { width:30px; height:30px; border-radius:8px; background:#EFF6F8; display:flex; align-items:center; justify-content:center; }
+  .task-ic svg { width:15px; height:15px; stroke:#0E7490; }
+  .task-main { flex:1; min-width:0; }
+  .task-title { font-size:13px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .task-sub { font-size:11.5px; color:#8A8A94; margin-top:2px; }
+  .task-time { font-size:11.5px; color:#8A8A94; }
+</style>
+</head>
+<body>
+<div class="window">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-logo">知</div>
+      <div class="brand-name">抖音知识库</div>
+    </div>
+    <nav class="nav">
+      <div class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M3 10.5 12 3l9 7.5V21H3z"/><path d="M9 21v-6h6v6"/></svg>首页</div>
+      <div class="nav-item active">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 21h16"/></svg>快速获取</div>
+      <div class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/><circle cx="12" cy="12" r="3.5"/></svg>AI 总结</div>
+      <div class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V4H6.5A2.5 2.5 0 0 0 4 6.5v13z"/><path d="M8 7h8M8 10h6"/></svg>知识库</div>
+      <div class="nav-sep"></div>
+      <div class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M14.7 6.3a4 4 0 1 0 5 5L21 21l-3 0-8.6-8.6a4 4 0 0 0 5.3-6.1z"/></svg>环境准备</div>
+      <div class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M4 12h2M18 12h2M12 4v2M12 18v2M6 6l1.5 1.5M16.5 16.5 18 18M18 6l-1.5 1.5M7.5 16.5 6 18"/></svg>设置</div>
+    </nav>
+    <div class="sidebar-foot">
+      <div class="env-badge"><span class="dot"></span>GPU 转写 · 环境就绪</div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        搜索文章、博主、标签或转写内容…
+      </div>
+      <div class="topbar-right">
+        <div class="icon-btn"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></div>
+        <div class="icon-btn"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></div>
+        <div class="avatar"></div>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="page-head">
+        <h1>快速获取</h1>
+        <div class="sub">粘贴抖音分享文案，自动完成下载 → 音频提取 → 本地转写</div>
+      </div>
+
+      <div class="card input-card">
+        <textarea placeholder="在此粘贴抖音分享文案或链接，例如：7分钟带大家搞懂FDE https://v.douyin.com/xxxxxxx/"></textarea>
+        <div class="input-row">
+          <div class="btn-primary">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 21h16"/></svg>
+            开始下载并转写
+          </div>
+          <div class="btn-ghost">清空</div>
+          <div class="btn-ghost">获取 / 刷新 Cookie</div>
+          <div class="hint">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+            Cookie 有效期约 7 天，下载失败时刷新
+          </div>
+        </div>
+      </div>
+
+      <div class="card pipe-card">
+        <div class="pipe-head">
+          <h3>正在处理</h3>
+          <div class="task">Docker和K8s到底什么区别 #Docker #K8s</div>
+        </div>
+        <div class="steps">
+          <div class="step done">
+            <div class="step-ic"><svg viewBox="0 0 24 24" fill="none"><path d="m5 12 5 5L19 7"/></svg></div>
+            <div class="s-name">下载视频</div>
+            <div class="s-detail">48.2 MB · 无头浏览器直取</div>
+          </div>
+          <div class="step done">
+            <div class="step-ic"><svg viewBox="0 0 24 24" fill="none"><path d="m5 12 5 5L19 7"/></svg></div>
+            <div class="s-name">提取音频</div>
+            <div class="s-detail">16kHz 单声道 WAV</div>
+          </div>
+          <div class="step now">
+            <div class="step-ic"><div class="spin"></div></div>
+            <div class="s-name">FunASR 转写</div>
+            <div class="s-detail">Paraformer · GPU 加速 · 62%</div>
+            <div class="mini-progress"><i></i></div>
+          </div>
+          <div class="step">
+            <div class="step-ic"></div>
+            <div class="s-name">生成文稿</div>
+            <div class="s-detail">等待中</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card result-card">
+        <div class="result-head">
+          <h3>最近一次结果</h3>
+          <span class="badge done">转写完成</span>
+          <div class="result-actions">
+            <div class="btn-primary" style="height:28px;font-size:12px;padding:0 14px;">用这篇稿去 AI 总结</div>
+            <div class="btn-ghost" style="height:28px;font-size:12px;">打开所在文件夹</div>
+          </div>
+        </div>
+        <div class="result-body">
+          很多人分不清 Docker 和 Kubernetes 的区别，其实一句话就能概括：Docker 负责把应用打包成容器让它跑起来，而 Kubernetes 负责管理成百上千个容器该怎么协作……容器镜像就像集装箱，把代码、运行环境、依赖全部打包在一起，做到"一次构建，到处运行"。而当容器多起来之后，你就要考虑调度、扩缩容、服务发现、负载均衡这些问题，这就是 Kubernetes 的价值所在……
+        </div>
+      </div>
+
+      <div class="recent">
+        <h3>最近任务</h3>
+        <div class="task-row">
+          <div class="task-ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m10 9 5 3-5 3z"/></svg></div>
+          <div class="task-main">
+            <div class="task-title">7分钟带大家搞懂FDE是的工作内容 #FDE #ai #产品经理</div>
+            <div class="task-sub">下载 ✓ · 转写 ✓ · 已生成知识文章</div>
+          </div>
+          <span class="badge done">已完成</span>
+          <div class="task-time">今天 02:47</div>
+        </div>
+        <div class="task-row">
+          <div class="task-ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m10 9 5 3-5 3z"/></svg></div>
+          <div class="task-main">
+            <div class="task-title">8种App和小程序的高级感弹出交互（附AI提示词）</div>
+            <div class="task-sub">下载 ✓ · 转写 ✓ · 已生成知识文章</div>
+          </div>
+          <span class="badge done">已完成</span>
+          <div class="task-time">昨天 21:15</div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+</body>
+</html>

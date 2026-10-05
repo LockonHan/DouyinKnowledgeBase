@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>抖音知识库 · 阅读视图</title>
+<style>
+  :root{
+    --paper:#F4F5F2; --sunk:#EAEDE8; --ink:#1B2430; --ink2:#59636F;
+    --ink3:#8B949E; --rule:#DCE0DA; --live:#0FB5BE; --frame:#DFE3DD;
+    --ui:"Segoe UI Variable Text","Segoe UI","Microsoft YaHei UI",sans-serif;
+    --read:"Source Han Serif SC","Noto Serif SC","Songti SC","SimSun",serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{width:1440px;height:960px;overflow:hidden;background:var(--paper);
+       color:var(--ink);font-family:var(--ui);-webkit-font-smoothing:antialiased}
+  .win{height:960px;display:flex;flex-direction:column}
+
+  .titlebar{height:36px;display:flex;align-items:center;padding:0 12px 0 14px;gap:9px;border-bottom:1px solid var(--rule)}
+  .mark{width:21px;height:21px;background:var(--ink);color:var(--paper);display:flex;align-items:center;justify-content:center;
+        font-family:var(--read);font-size:13px;line-height:1;border-radius:3px}
+  .win-title{font-size:12.5px;color:var(--ink2)}
+  .win-ctl{margin-left:auto;display:flex;gap:18px;align-items:center}
+  .win-ctl i{display:block;width:11px;height:1px;background:var(--ink3)}
+  .win-ctl .sq{width:9px;height:9px;border:1px solid var(--ink3)}
+  .win-ctl .x{width:11px;height:11px;position:relative}
+  .win-ctl .x::before,.win-ctl .x::after{content:"";position:absolute;top:5px;left:0;width:11px;height:1px;background:var(--ink3)}
+  .win-ctl .x::before{transform:rotate(45deg)} .win-ctl .x::after{transform:rotate(-45deg)}
+
+  .body{flex:1;display:flex;min-height:0}
+
+  .rail{width:172px;background:var(--sunk);border-right:1px solid var(--rule);padding:22px 0 16px;display:flex;flex-direction:column}
+  .rail a{display:block;position:relative;padding:9px 22px;font-size:13.5px;color:var(--ink2);text-decoration:none}
+  .rail a.on{color:var(--ink);font-weight:600}
+  .rail a.on::before{content:"";position:absolute;left:0;top:9px;bottom:9px;width:2px;background:var(--live)}
+  .rail .grp{margin-top:26px}
+  .rail-foot{margin-top:auto;padding:0 22px;font-size:11.5px;color:var(--ink3);line-height:1.7}
+
+  .main{flex:1;display:flex;min-width:0}
+
+  /* 文章左侧：视频片格轨 */
+  .source{width:196px;border-right:1px solid var(--rule);padding:38px 26px 30px;display:flex;flex-direction:column;gap:14px}
+  .bigframe{width:142px;height:252px;background:var(--frame);border-radius:4px;position:relative;display:flex;align-items:center;justify-content:center}
+  .bigframe svg{width:24px;height:24px;fill:var(--ink3);opacity:.7}
+  .bigframe .dur{position:absolute;left:0;right:0;bottom:10px;text-align:center;font-size:11.5px;color:var(--ink2);font-variant-numeric:tabular-nums}
+  .source .cap{font-size:11.5px;color:var(--ink3);line-height:1.7}
+  .source .acts{margin-top:auto;display:flex;flex-direction:column;gap:11px;align-items:flex-start}
+  .source .acts a{font-size:12.5px;color:var(--ink2);text-decoration:none;border-bottom:1px solid var(--rule);padding-bottom:2px}
+
+  /* 阅读面 */
+  .article{flex:1;overflow:hidden;padding:38px 0 0 54px;display:flex;gap:56px}
+  .prose{width:672px}
+  .crumb{font-size:12px;color:var(--ink3);margin-bottom:18px}
+  .h1{font-family:var(--read);font-size:31px;font-weight:700;line-height:1.42;letter-spacing:.4px}
+  .meta{margin:16px 0 0;display:flex;gap:22px;font-size:12px;color:var(--ink3);flex-wrap:wrap}
+  .rule{margin:26px 0 30px;border-top:1px solid var(--rule)}
+  .p{font-family:var(--read);font-size:15.5px;line-height:1.95;color:#232D38;margin-bottom:20px}
+  .h2{font-family:var(--read);font-size:19px;font-weight:700;margin:34px 0 14px}
+  .quote{margin:26px 0;padding:2px 0 2px 18px;border-left:2px solid var(--ink);font-family:var(--read);font-size:15px;line-height:1.9;color:var(--ink2)}
+
+  /* 右侧目录 */
+  .toc{width:150px;padding-top:76px;font-size:12px;color:var(--ink3);line-height:2.1}
+  .toc .tt{color:var(--ink2);margin-bottom:8px}
+
+  /* 顶部操作 */
+  .actions{position:absolute;top:52px;right:46px;display:flex;align-items:center;gap:18px}
+  .btn-ink{background:var(--ink);color:#F4F5F2;font-size:12.5px;padding:9px 18px;border-radius:4px}
+  .tlink{font-size:12.5px;color:var(--ink2)}
+</style>
+</head>
+<body>
+<div class="win">
+  <div class="titlebar">
+    <div class="mark">知</div>
+    <div class="win-title">抖音知识库</div>
+    <div class="win-ctl"><i></i><span class="sq"></span><span class="x"></span></div>
+  </div>
+
+  <div class="body">
+    <nav class="rail">
+      <a class="on" href="#">知识库</a>
+      <a href="#">快速获取</a>
+      <div class="grp">
+        <a href="#">环境准备</a>
+        <a href="#">设置</a>
+      </div>
+      <div class="rail-foot">本地转写已就绪<br>FunASR · GPU</div>
+    </nav>
+
+    <div class="main" style="position:relative">
+      <div class="actions">
+        <span class="btn-ink">导出 Markdown</span>
+        <span class="tlink">复制全文</span>
+      </div>
+
+      <aside class="source">
+        <div class="bigframe">
+          <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          <span class="dur">12:08</span>
+        </div>
+        <div class="cap">8 种 App 和小程序的高级感弹出交互</div>
+        <div class="acts">
+          <a href="#">回看原视频</a>
+          <a href="#">查看转写原文</a>
+        </div>
+      </aside>
+
+      <article class="article">
+        <div class="prose">
+          <div class="crumb">知识库　/　交互设计</div>
+          <h1 class="h1">8 种 App 弹出交互的高级感做法</h1>
+          <div class="meta">
+            <span>来源：抖音博主「交互笔记」</span>
+            <span>时长 12:08</span>
+            <span>转写于 10 月 4 日</span>
+          </div>
+          <div class="rule"></div>
+
+          <p class="p">弹出交互的价值不在动画本身，而在于它替用户回答了两个问题：我刚才做了什么，接下来可以做什么。一旦这两件事说清楚，动效反而是多余的。</p>
+
+          <h2 class="h2">按钮菜单：从来源处生长</h2>
+          <p class="p">按钮菜单应从被点击的那个按钮处展开，而不是从屏幕中央冒出。方向也要判断屏幕剩余空间，靠上就向下弹，靠右就向左弹。用户之所以觉得"高级"，往往只是因为它没有违背直觉。</p>
+
+          <div class="quote">菜单从按钮生长出来，用户就不需要重新定位自己的目光。</div>
+
+          <h2 class="h2">卡片详情：先保持连续，再展示细节</h2>
+          <p class="p">列表里的卡片被点开后，应该先扩展成详情，再补充内容，而不是整页跳转。保持空间连续，用户才知道自己还在原来的位置，只是看得更深了。</p>
+
+          <h2 class="h2">确认弹窗与气泡提示的分工</h2>
+          <p class="p">确认弹窗负责不可逆的操作，气泡提示负责解释刚刚发生的变化。把后者做成前者，是界面变重的常见原因。</p>
+        </div>
+
+        <nav class="toc">
+          <div class="tt">本文结构</div>
+          按钮菜单<br>
+          卡片详情<br>
+          确认弹窗与气泡提示<br>
+          侧边抽屉与结算清单
+        </nav>
+      </article>
+    </div>
+  </div>
+</div>
+</body>
+</html>
