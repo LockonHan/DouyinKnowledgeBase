@@ -146,18 +146,21 @@ public static class RepoLocator
         return Directory.Exists(dir) ? dir : null;
     }
 
-    /// <summary>解析实际使用的 Python：内置运行时优先，其次配置值，最后自动探测。</summary>
+    /// <summary>
+    /// 解析实际使用的 Python：用户明确配置且依赖齐全的最优先（保证本机 GPU 版 PyTorch 等
+    /// 环境可用），其次内置运行时，最后自动探测。
+    /// </summary>
     public static string EffectivePython(string? configured)
     {
+        if (IsUsablePython(configured))
+        {
+            return configured!;
+        }
+
         string? bundled = BundledPython();
         if (bundled is not null && IsUsablePython(bundled))
         {
             return bundled;
-        }
-
-        if (IsUsablePython(configured))
-        {
-            return configured!;
         }
 
         string detected = DetectPython();
@@ -169,9 +172,17 @@ public static class RepoLocator
         return bundled ?? configured ?? "";
     }
 
-    /// <summary>环境准备的目标 Python：内置运行时优先（即便尚未安装依赖）。</summary>
+    /// <summary>
+    /// 环境准备的目标 Python：已配置且可用的解释器优先（不再重定向到内置），
+    /// 否则内置运行时优先（即便尚未安装依赖）。
+    /// </summary>
     public static string SetupTargetPython(string? configured)
     {
+        if (IsUsablePython(configured))
+        {
+            return configured!;
+        }
+
         string? bundled = BundledPython();
         if (bundled is not null)
         {

@@ -52,6 +52,12 @@
                     Height="18"
                     VerticalAlignment="Center"
                     Visibility="Collapsed" />
+                <TextBlock
+                    x:Name="GenerateStateText"
+                    VerticalAlignment="Center"
+                    Style="{StaticResource DouKBMetaTextStyle}"
+                    Text=""
+                    Visibility="Collapsed" />
             </StackPanel>
         </Border>
 
@@ -124,9 +130,11 @@
                     IsClosable="True"
                     IsOpen="False" />
                 <ScrollViewer
+                    x:Name="ArticleScroll"
                     Grid.Column="0"
                     Padding="54,38,24,60"
-                    VerticalScrollBarVisibility="Auto">
+                    VerticalScrollBarVisibility="Auto"
+                    ViewChanged="ArticleScroll_ViewChanged">
                     <StackPanel MaxWidth="672" HorizontalAlignment="Left" Spacing="0">
 
                         <TextBlock

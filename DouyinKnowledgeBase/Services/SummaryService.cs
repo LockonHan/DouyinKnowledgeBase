@@ -50,4 +50,17 @@ public sealed class SummaryService
         string userMessage = "以下是视频转写文稿：\n\n" + transcript.Trim();
         return await _llmClient.ChatAsync(settings, SystemPrompt, userMessage);
     }
+
+    /// <summary>
+    /// 流式版：调用大模型逐块返回文章内容，onDelta 每次收到增量文本时回调（调用方可用于显示进度）。
+    /// </summary>
+    public Task<string> SummarizeStreamAsync(
+        LlmSettings settings,
+        string transcript,
+        Action<string>? onDelta = null,
+        CancellationToken cancellationToken = default)
+    {
+        string userMessage = "以下是视频转写文稿：\n\n" + transcript.Trim();
+        return _llmClient.ChatStreamAsync(settings, SystemPrompt, userMessage, onDelta, cancellationToken);
+    }
 }

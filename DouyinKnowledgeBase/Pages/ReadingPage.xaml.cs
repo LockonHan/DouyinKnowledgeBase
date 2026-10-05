@@ -25,6 +25,9 @@ public sealed partial class ReadingPage : Page
     private string _markdown = "";
     private bool _generating;
 
+    /// <summary>用户是否停留在正文底部附近；用于流式生成时的智能滚动跟随。</summary>
+    private bool _autoScroll = true;
+
     public ReadingPage()
     {
         InitializeComponent();
@@ -222,10 +225,45 @@ public sealed partial class ReadingPage : Page
         _generating = true;
         GenerateButton.IsEnabled = false;
         BusyRing.Visibility = Visibility.Visible;
+        GenerateStateText.Visibility = Visibility.Visible;
+        GenerateStateText.Text = "正在生成文章…";
         ShowStatus("正在调用大模型生成文章，请稍候……", InfoBarSeverity.Informational);
+
+        // 流式打字机：正文区实时增长（时间节流，每 150ms 刷新一次快照）。
+        string previousMarkdown = _markdown;
+        StringBuilder streamedArticle = new();
+        long lastFlushTicks = 0;
+        bool articleAreaShown = false;
         try
         {
-            string article = await _summaryService.SummarizeAsync(settings, transcript);
+            string article = await _summaryService.SummarizeStreamAsync(settings, transcript, delta =>
+            {
+                streamedArticle.Append(delta);
+
+                // 首块内容到达即切到正文显示，让用户立刻看到文字增长。
+                long now = Environment.TickCount64;
+                if (now - lastFlushTicks >= 150)
+                {
+                    lastFlushTicks = now;
+                    string snapshot = streamedArticle.ToString();
+                    DispatcherQueue.TryEnqueue(() =>
+                    {
+                        if (!articleAreaShown)
+                        {
+                            articleAreaShown = true;
+                            EmptyPanel.Visibility = Visibility.Collapsed;
+                            Article.Visibility = Visibility.Visible;
+                        }
+
+                        Article.Text = snapshot;
+                        if (_autoScroll)
+                        {
+                            ArticleScroll.ChangeView(null, ArticleScroll.ScrollableHeight, null);
+                        }
+                    });
+                }
+            });
+
             ArticleMeta meta = await _store.SaveAsync(
                 _item.SourceTitle, _item.TranscriptPath, article, settings.Model);
 
@@ -242,12 +280,37 @@ public sealed partial class ReadingPage : Page
         {
             ShowStatus("生成失败：" + ex.Message, InfoBarSeverity.Error);
             GenerateButton.IsEnabled = true;
+
+            // 失败恢复：有旧文章则还原，无则回到空态引导。
+            if (!string.IsNullOrEmpty(previousMarkdown))
+            {
+                Article.Text = previousMarkdown;
+            }
+            else
+            {
+                Article.Text = "";
+                Article.Visibility = Visibility.Collapsed;
+                EmptyPanel.Visibility = Visibility.Visible;
+            }
         }
         finally
         {
             _generating = false;
             BusyRing.Visibility = Visibility.Collapsed;
+            GenerateStateText.Visibility = Visibility.Collapsed;
         }
+    }
+
+    /// <summary>滚动跟随：用户在底部附近时自动跟随；主动上翻则停止跟随，回到底部后恢复。</summary>
+    private void ArticleScroll_ViewChanged(object? sender, ScrollViewerViewChangedEventArgs e)
+    {
+        if (ArticleScroll.ScrollableHeight <= 0)
+        {
+            return;
+        }
+
+        double distanceToBottom = ArticleScroll.ScrollableHeight - ArticleScroll.VerticalOffset;
+        _autoScroll = distanceToBottom <= 120;
     }
 
     private async void ExportButton_Click(object sender, RoutedEventArgs e)

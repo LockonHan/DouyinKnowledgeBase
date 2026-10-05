@@ -34,11 +34,11 @@ public sealed class PipelineSettingsService
             return CreateDefault();
         }
 
-        // 配置里的解释器不可用时，依次回落到内置运行时与自动探测结果。
-        string effective = RepoLocator.EffectivePython(settings.PythonPath);
-        if (!string.IsNullOrWhiteSpace(effective))
+        // 用户明确配置的解释器不再被覆盖（EffectivePython 已优先校验用户配置）；
+        // 仅当配置为空时补一个默认值，保证管线有解释器可用。
+        if (string.IsNullOrWhiteSpace(settings.PythonPath))
         {
-            settings.PythonPath = effective;
+            settings.PythonPath = RepoLocator.EffectivePython("");
         }
 
         if (string.IsNullOrWhiteSpace(settings.DataDir))
