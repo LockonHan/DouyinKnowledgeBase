@@ -18,6 +18,7 @@ public sealed class EnvironmentReport
     [JsonPropertyName("browserReady")] public bool BrowserReady { get; set; }
     [JsonPropertyName("modelsDir")] public string ModelsDir { get; set; } = "";
     [JsonPropertyName("models")] public Dictionary<string, bool> Models { get; set; } = new();
+    [JsonPropertyName("requestedDevice")] public string RequestedDevice { get; set; } = "";
     [JsonPropertyName("device")] public string Device { get; set; } = "";
     [JsonPropertyName("ready")] public bool Ready { get; set; }
     [JsonPropertyName("issues")] public List<string> Issues { get; set; } = new();
@@ -231,6 +232,38 @@ public sealed class EnvironmentService
         return report;
     }
 
+    private static Process? _activeInstall;
+    private static volatile bool _cancelRequested;
+
+    /// <summary>当前是否有安装/下载正在进行（切换页面后仍可据此恢复界面状态）。</summary>
+    public static bool IsInstalling => _activeInstall is not null;
+
+    /// <summary>
+    /// 结束正在运行的安装进程。用于「停止准备环境」以及关闭应用时，
+    /// 避免下载进程在界面消失后仍作为孤儿进程驻留并继续占用带宽。
+    /// </summary>
+    public static void KillActiveInstall()
+    {
+        _cancelRequested = true;
+        Process? process = Interlocked.Exchange(ref _activeInstall, null);
+        if (process is null)
+        {
+            return;
+        }
+
+        try
+        {
+            if (!process.HasExited)
+            {
+                process.Kill(entireProcessTree: true);
+            }
+        }
+        catch (Exception)
+        {
+            // 进程可能已退出或句柄已释放。
+        }
+    }
+
     private static string EnsureScript()
     {
         string script = RepoLocator.ScriptPath("env_setup.py");
@@ -264,11 +297,8 @@ public sealed class EnvironmentService
         psi.ArgumentList.Add(check ? "--check" : "--install");
         psi.ArgumentList.Add("--python");
         psi.ArgumentList.Add(request.PythonPath);
-        if (!check)
-        {
-            psi.ArgumentList.Add("--device");
-            psi.ArgumentList.Add(request.UseGpu ? "gpu" : "cpu");
-        }
+        psi.ArgumentList.Add("--device");
+        psi.ArgumentList.Add(request.UseGpu ? "gpu" : "cpu");
 
         if (!string.IsNullOrWhiteSpace(request.ModelsDir))
         {
@@ -306,6 +336,11 @@ public sealed class EnvironmentService
         {
             throw new InvalidOperationException("无法启动 Python 进程。");
         }
+
+        _cancelRequested = false;
+        _activeInstall = process;
+        using CancellationTokenRegistration cancelRegistration =
+            cancellationToken.Register(static () => KillActiveInstall());
 
         Task stderrTask = Task.Run(async () =>
         {
@@ -355,6 +390,13 @@ public sealed class EnvironmentService
 
         await exitSource.Task;
         await stderrTask;
+        _activeInstall = null;
+
+        if (cancellationToken.IsCancellationRequested || _cancelRequested)
+        {
+            _cancelRequested = false;
+            throw new OperationCanceledException(cancellationToken);
+        }
 
         if (process.ExitCode != 0 && collected.Length == 0)
         {

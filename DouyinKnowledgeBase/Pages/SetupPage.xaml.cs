@@ -25,6 +25,7 @@ public sealed partial class SetupPage : Page
 
     private bool _initialized;
     private bool _running;
+    private CancellationTokenSource? _cts;
     private bool _suppressDeviceChanged;
     private bool _deviceUiReady;
 
@@ -80,6 +81,13 @@ public sealed partial class SetupPage : Page
 
         // 到这里为止的设备变更都视为“初始化”，不触发保存。
         _deviceUiReady = true;
+
+        if (EnvironmentService.IsInstalling)
+        {
+            // 安装进程挂在被切换走的旧页面上，这里重新暴露“停止”入口。
+            StepText.Text = "环境准备正在后台继续进行（切换页面不会中断下载）。";
+            StopButton.IsEnabled = true;
+        }
     }
 
     /// <summary>选定模型缓存目录：优先复用已有模型的目录，其次安装目录，最后默认缓存。</summary>
@@ -232,17 +240,23 @@ public sealed partial class SetupPage : Page
         string sentencepiece = PackageOf(report, "sentencepiece");
         string playwright = PackageOf(report, "playwright");
         string curlCffi = PackageOf(report, "curl_cffi");
+        bool wantsGpu = report.RequestedDevice.StartsWith("cuda", StringComparison.OrdinalIgnoreCase)
+                       || (string.IsNullOrWhiteSpace(report.RequestedDevice) && DeviceChoice.SelectedIndex == 0);
+        bool torchReady = !string.IsNullOrWhiteSpace(torchVersion) && (!wantsGpu || report.TorchCuda);
+        string torchDetail = string.IsNullOrWhiteSpace(torchVersion)
+            ? "未安装"
+            : wantsGpu && !report.TorchCuda
+                ? $"{torchVersion}｜GPU 不可用，当前为 CPU 模式"
+                : $"{torchVersion}｜{(report.TorchCuda ? "CUDA 可用" : "CPU 模式")}";
 
         List<SetupCheckItem> items = new()
         {
             Item(!string.IsNullOrWhiteSpace(report.PythonVersion),
                 "Python 运行时",
                 $"{report.PythonPath}（{report.PythonVersion}）"),
-            Item(!string.IsNullOrWhiteSpace(torchVersion),
+            Item(torchReady,
                 "PyTorch（转写推理）",
-                string.IsNullOrWhiteSpace(torchVersion)
-                    ? "未安装"
-                    : $"{torchVersion}｜{(report.TorchCuda ? "CUDA 可用" : "CPU 模式")}"),
+                torchDetail),
             Item(!string.IsNullOrWhiteSpace(funasrVersion),
                 "FunASR 与依赖",
                 $"funasr {funasrVersion}｜playwright {playwright}｜curl_cffi {curlCffi}｜sentencepiece {sentencepiece}"),
@@ -314,9 +328,14 @@ public sealed partial class SetupPage : Page
         }
 
         _running = true;
+        _cts?.Dispose();
+        _cts = new CancellationTokenSource();
         StartButton.IsEnabled = false;
+        StopButton.IsEnabled = true;
         RefreshButton.IsEnabled = false;
         SetupProgressBar.Value = 0;
+        TransferText.Text = "";
+        TransferText.Visibility = Visibility.Collapsed;
         StepText.Text = "正在准备环境…";
 
         var progress = new Progress<SetupProgress>(OnSetupProgress);
@@ -324,30 +343,36 @@ public sealed partial class SetupPage : Page
         try
         {
             EnvironmentReport? report = await _environmentService.InstallAsync(
-                BuildRequest(), progress, CancellationToken.None, AppendLog);
+                BuildRequest(), progress, _cts.Token, AppendLog);
             ApplyReport(report);
 
             if (report is null)
             {
                 StepText.Text = "环境准备未返回结果，请查看安装日志。";
             }
-            else if (report.Ready)
+            else if (useGpu && !report.TorchCuda)
             {
-                // 环境就绪后按配置启动常驻转写服务，后续转写无需重复加载模型。
-                App.AsrServer.Start(_pipeline);
+                StepText.Text = "环境准备完成，但 CUDA 不可用，已回落为 CPU 转写：" +
+                                string.Join("；", report.Issues);
+                ShowStatus(StepText.Text, InfoBarSeverity.Warning);
             }
             else if (!report.Ready)
             {
                 StepText.Text = "环境准备完成，但仍有未就绪项：" + string.Join("；", report.Issues);
             }
-            else if (useGpu && !report.TorchCuda)
-            {
-                StepText.Text = "环境已就绪，但 CUDA 不可用，已自动回落为 CPU 转写。";
-            }
             else
             {
-                StepText.Text = $"环境准备完成，转写设备：{report.Device}。";
+                // 环境就绪后按配置启动常驻转写服务，后续转写无需重复加载模型。
+                // 放在后台线程：设备切换时需要先停掉旧服务，等待期间不能阻塞 UI。
+                PipelineSettings pipeline = _pipeline;
+                _ = Task.Run(() => App.AsrServer.Start(pipeline));
+                StepText.Text = $"环境已就绪，无需再次准备。转写设备：{report.Device}。";
             }
+        }
+        catch (OperationCanceledException)
+        {
+            StepText.Text = "已停止环境准备。已下载的内容会保留，可稍后再点「开始准备环境」继续。";
+            ShowStatus(StepText.Text, InfoBarSeverity.Informational);
         }
         catch (Exception ex)
         {
@@ -358,8 +383,31 @@ public sealed partial class SetupPage : Page
         {
             _running = false;
             StartButton.IsEnabled = true;
+            StopButton.IsEnabled = false;
             RefreshButton.IsEnabled = true;
+            _cts?.Dispose();
+            _cts = null;
         }
+    }
+
+    private void StopButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (EnvironmentService.IsInstalling)
+        {
+            StepText.Text = "正在停止环境准备…";
+            StopButton.IsEnabled = false;
+            EnvironmentService.KillActiveInstall();
+            return;
+        }
+
+        if (_cts is null || _cts.IsCancellationRequested)
+        {
+            return;
+        }
+
+        StepText.Text = "正在停止环境准备…";
+        StopButton.IsEnabled = false;
+        _cts.Cancel();
     }
 
     private void OnSetupProgress(SetupProgress progress)
@@ -373,6 +421,13 @@ public sealed partial class SetupPage : Page
         if (!string.IsNullOrWhiteSpace(progress.Message))
         {
             StepText.Text = progress.Message;
+            if (progress.Message.Contains("MB/s", StringComparison.OrdinalIgnoreCase)
+                || progress.Message.Contains("KB/s", StringComparison.OrdinalIgnoreCase)
+                || progress.Message.Contains("剩余", StringComparison.Ordinal))
+            {
+                TransferText.Text = progress.Message;
+                TransferText.Visibility = Visibility.Visible;
+            }
         }
     }
 
@@ -410,17 +465,5 @@ public sealed partial class SetupPage : Page
         StatusInfo.Severity = severity;
         StatusInfo.Title = message;
         StatusInfo.IsOpen = true;
-    }
-
-    private void BackButton_Click(object sender, RoutedEventArgs e)
-    {
-        if (Frame.CanGoBack)
-        {
-            Frame.GoBack();
-        }
-        else
-        {
-            Frame.Navigate(typeof(MainPage));
-        }
     }
 }

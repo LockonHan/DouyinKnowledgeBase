@@ -5,164 +5,179 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    Background="{ThemeResource DouKBPaperBrush}"
     mc:Ignorable="d">
 
-    <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <StackPanel MaxWidth="760" Padding="32,24,32,32" Spacing="8">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
 
-            <!-- 页头 -->
-            <StackPanel Orientation="Horizontal" Spacing="12" Margin="0,0,0,12">
-                <Button
-                    x:Name="BackButton"
-                    Click="BackButton_Click"
-                    ToolTipService.ToolTip="返回"
-                    AutomationProperties.Name="返回"
-                    Padding="8"
-                    Background="Transparent">
-                    <FontIcon Glyph="&#xE72B;" FontSize="16" />
-                </Button>
-                <TextBlock Text="设置" Style="{StaticResource TitleTextBlockStyle}" VerticalAlignment="Center" />
-            </StackPanel>
+        <Border Grid.Row="0" Style="{StaticResource DouKBHairlineStyle}" />
 
-            <!-- 大模型接入点 -->
-            <TextBlock
-                Text="大模型接入点（OpenAI 兼容）"
-                Style="{StaticResource SubtitleTextBlockStyle}"
-                Margin="0,8,0,4" />
+        <ScrollViewer
+            Grid.Row="1"
+            Padding="46,36,46,40"
+            VerticalScrollBarVisibility="Auto">
+            <StackPanel MaxWidth="760" HorizontalAlignment="Left" Spacing="0">
 
-            <TextBlock Text="用于把转写文稿总结成结构化知识文章。配置仅保存在本机应用数据目录。"
-                       TextWrapping="Wrap" Opacity="0.7" />
+                <TextBlock Text="设置" Style="{StaticResource DouKBDisplayTextStyle}" />
+                <TextBlock
+                    Margin="0,10,0,0"
+                    Style="{StaticResource DouKBLedgerTextStyle}"
+                    Text="大模型接入点与本地转写配置，仅保存在本机。" />
 
-            <StackPanel Spacing="4" Margin="0,12,0,0">
-                <TextBlock Text="接入点地址" />
-                <TextBox
-                    x:Name="BaseUrlBox"
-                    PlaceholderText="https://api.openai.com/v1"
-                    AutomationProperties.Name="接入点地址" />
-            </StackPanel>
+                <!-- ==================== 大模型接入点 ==================== -->
+                <TextBlock
+                    Margin="0,34,0,0"
+                    Style="{StaticResource DouKBSectionTitleStyle}"
+                    Text="大模型接入点（OpenAI 兼容）" />
+                <TextBlock
+                    Margin="0,8,0,0"
+                    Style="{StaticResource DouKBCaptionTextStyle}"
+                    Text="用于把转写文稿总结成结构化知识文章。" />
+                <Border Margin="0,14,0,0" Style="{StaticResource DouKBHairlineStyle}" />
 
-            <StackPanel Spacing="4">
-                <TextBlock Text="API Key" />
-                <PasswordBox
-                    x:Name="ApiKeyBox"
-                    PasswordRevealMode="Peek"
-                    PlaceholderText="sk-..."
-                    AutomationProperties.Name="API Key" />
-            </StackPanel>
+                <StackPanel Margin="0,16,0,0" Spacing="16">
+                    <StackPanel Spacing="6">
+                        <TextBlock Style="{StaticResource DouKBLedgerTextStyle}" Text="接入点地址" />
+                        <TextBox
+                            x:Name="BaseUrlBox"
+                            AutomationProperties.Name="接入点地址"
+                            PlaceholderText="https://api.openai.com/v1"
+                            Style="{StaticResource DouKBLineTextBoxStyle}" />
+                    </StackPanel>
 
-            <StackPanel Spacing="4">
-                <TextBlock Text="模型名称" />
-                <TextBox
-                    x:Name="ModelBox"
-                    PlaceholderText="deepseek-chat / qwen-plus / gpt-4o-mini"
-                    AutomationProperties.Name="模型名称" />
-            </StackPanel>
+                    <StackPanel Spacing="6">
+                        <TextBlock Style="{StaticResource DouKBLedgerTextStyle}" Text="API Key" />
+                        <PasswordBox
+                            x:Name="ApiKeyBox"
+                            AutomationProperties.Name="API Key"
+                            PlaceholderText="sk-..." />
+                    </StackPanel>
 
-            <StackPanel Spacing="4">
-                <TextBlock Text="温度" />
-                <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
-                    <Slider
-                        x:Name="TemperatureSlider"
-                        Minimum="0"
-                        Maximum="2"
-                        StepFrequency="0.1"
-                        Width="260"
-                        ValueChanged="TemperatureSlider_ValueChanged"
-                        AutomationProperties.Name="温度" />
-                    <TextBlock x:Name="TemperatureText" Text="0.7" VerticalAlignment="Center" MinWidth="32" />
+                    <StackPanel Spacing="6">
+                        <TextBlock Style="{StaticResource DouKBLedgerTextStyle}" Text="模型名称" />
+                        <TextBox
+                            x:Name="ModelBox"
+                            AutomationProperties.Name="模型名称"
+                            PlaceholderText="deepseek-chat / qwen-plus / gpt-4o-mini"
+                            Style="{StaticResource DouKBLineTextBoxStyle}" />
+                    </StackPanel>
+
+                    <StackPanel Spacing="6">
+                        <TextBlock Style="{StaticResource DouKBLedgerTextStyle}" Text="温度" />
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <Slider
+                                x:Name="TemperatureSlider"
+                                Width="260"
+                                AutomationProperties.Name="温度"
+                                Maximum="2"
+                                Minimum="0"
+                                StepFrequency="0.1"
+                                ValueChanged="TemperatureSlider_ValueChanged" />
+                            <TextBlock
+                                x:Name="TemperatureText"
+                                MinWidth="32"
+                                VerticalAlignment="Center"
+                                Style="{StaticResource DouKBLedgerTextStyle}"
+                                Text="0.7" />
+                        </StackPanel>
+                    </StackPanel>
                 </StackPanel>
+
+                <!-- ==================== 视频下载与转写 ==================== -->
+                <TextBlock
+                    Margin="0,34,0,0"
+                    Style="{StaticResource DouKBSectionTitleStyle}"
+                    Text="视频下载与转写" />
+                <TextBlock
+                    Margin="0,8,0,0"
+                    Style="{StaticResource DouKBCaptionTextStyle}"
+                    Text="粘贴抖音链接后，应用会调用本机 Python 执行下载、音频提取与本地 FunASR 转写。" />
+                <Border Margin="0,14,0,0" Style="{StaticResource DouKBHairlineStyle}" />
+
+                <StackPanel Margin="0,16,0,0" Spacing="16">
+                    <StackPanel Spacing="6">
+                        <TextBlock Style="{StaticResource DouKBLedgerTextStyle}" Text="Python 解释器路径（需已安装 funasr）" />
+                        <TextBox
+                            x:Name="PythonPathBox"
+                            AutomationProperties.Name="Python 解释器路径"
+                            PlaceholderText="C:\Users\你\anaconda3\python.exe"
+                            Style="{StaticResource DouKBLineTextBoxStyle}" />
+                    </StackPanel>
+
+                    <StackPanel Spacing="6">
+                        <TextBlock Style="{StaticResource DouKBLedgerTextStyle}" Text="数据目录（存放 videos / audio / transcripts / cookies.txt）" />
+                        <TextBox
+                            x:Name="DataDirBox"
+                            AutomationProperties.Name="数据目录"
+                            PlaceholderText="D:\project\Codex\抖音知识库\data"
+                            Style="{StaticResource DouKBLineTextBoxStyle}" />
+                    </StackPanel>
+
+                    <StackPanel Spacing="6">
+                        <TextBlock Style="{StaticResource DouKBLedgerTextStyle}" Text="转写设备" />
+                        <ComboBox
+                            x:Name="DeviceBox"
+                            MinWidth="200"
+                            AutomationProperties.Name="转写设备">
+                            <ComboBoxItem Content="auto" />
+                            <ComboBoxItem Content="cuda:0" />
+                            <ComboBoxItem Content="cpu" />
+                        </ComboBox>
+                    </StackPanel>
+
+                    <StackPanel Spacing="6">
+                        <TextBlock Style="{StaticResource DouKBLedgerTextStyle}" Text="离线模型目录（可选；留空使用默认位置）" />
+                        <TextBox
+                            x:Name="ModelsDirBox"
+                            AutomationProperties.Name="离线模型目录"
+                            PlaceholderText="D:\DouyinKnowledgeBase\runtime\models"
+                            Style="{StaticResource DouKBLineTextBoxStyle}" />
+                    </StackPanel>
+
+                    <ToggleSwitch
+                        x:Name="ResidentSwitch"
+                        AutomationProperties.Name="常驻转写加速"
+                        Header="常驻转写加速"
+                        OffContent="已关闭"
+                        OnContent="已开启" />
+                    <TextBlock
+                        Style="{StaticResource DouKBCaptionTextStyle}"
+                        Text="开启后转写模型常驻内存，后续转写无需重新加载（首次加载约 20-30 秒，常驻占用约 2 GB 内存 / 显存）。" />
+
+                    <TextBlock
+                        Style="{StaticResource DouKBCaptionTextStyle}"
+                        Text="提示：抖音下载依赖浏览器 Cookie。若下载失败，可在「快速获取」点“刷新 Cookie”登录一次。" />
+                </StackPanel>
+
+                <!-- ==================== 操作 ==================== -->
+                <StackPanel Margin="0,28,0,0" Orientation="Horizontal" Spacing="22">
+                    <Button
+                        x:Name="SaveButton"
+                        Click="SaveButton_Click"
+                        Content="保存配置"
+                        Style="{StaticResource DouKBStrongButtonStyle}" />
+                    <Button
+                        x:Name="TestButton"
+                        Click="TestButton_Click"
+                        Content="测试连接"
+                        Style="{StaticResource DouKBQuietButtonStyle}" />
+                    <Button
+                        x:Name="SetupButton"
+                        Click="SetupButton_Click"
+                        Content="打开环境准备"
+                        Style="{StaticResource DouKBQuietButtonStyle}" />
+                </StackPanel>
+
+                <InfoBar
+                    x:Name="StatusInfo"
+                    Margin="0,18,0,0"
+                    IsClosable="True"
+                    IsOpen="False" />
             </StackPanel>
-
-            <!-- 视频下载与转写 -->
-            <TextBlock
-                Text="视频下载与转写"
-                Style="{StaticResource SubtitleTextBlockStyle}"
-                Margin="0,24,0,4" />
-
-            <TextBlock Text="粘贴抖音链接后，应用会调用本机 Python 执行下载、音频提取与本地 FunASR 转写。"
-                       TextWrapping="Wrap" Opacity="0.7" />
-
-            <StackPanel Spacing="4" Margin="0,12,0,0">
-                <TextBlock Text="Python 解释器路径（需已安装 funasr）" />
-                <TextBox
-                    x:Name="PythonPathBox"
-                    PlaceholderText="C:\Users\你\anaconda3\python.exe"
-                    AutomationProperties.Name="Python 解释器路径" />
-            </StackPanel>
-
-            <StackPanel Spacing="4">
-                <TextBlock Text="数据目录（存放 videos / audio / transcripts / cookies.txt）" />
-                <TextBox
-                    x:Name="DataDirBox"
-                    PlaceholderText="D:\project\Codex\抖音知识库\data"
-                    AutomationProperties.Name="数据目录" />
-            </StackPanel>
-
-            <StackPanel Spacing="4">
-                <TextBlock Text="转写设备" />
-                <ComboBox
-                    x:Name="DeviceBox"
-                    MinWidth="200"
-                    AutomationProperties.Name="转写设备">
-                    <ComboBoxItem Content="auto" />
-                    <ComboBoxItem Content="cuda:0" />
-                    <ComboBoxItem Content="cpu" />
-                </ComboBox>
-            </StackPanel>
-
-            <StackPanel Spacing="4">
-                <TextBlock Text="离线模型目录（可选；留空使用默认位置）" />
-                <TextBox
-                    x:Name="ModelsDirBox"
-                    PlaceholderText="D:\DouyinKnowledgeBase\runtime\models"
-                    AutomationProperties.Name="离线模型目录" />
-            </StackPanel>
-
-            <ToggleSwitch
-                x:Name="ResidentSwitch"
-                Header="常驻转写加速"
-                OnContent="已开启"
-                OffContent="已关闭"
-                Margin="0,4,0,0"
-                AutomationProperties.Name="常驻转写加速" />
-
-            <TextBlock
-                Text="开启后转写模型常驻内存，后续转写无需重新加载（首次加载约 20-30 秒，常驻占用约 2 GB 内存 / 显存）。"
-                TextWrapping="Wrap"
-                Opacity="0.55"
-                FontSize="12" />
-
-            <TextBlock
-                Text="提示：抖音下载依赖浏览器 Cookie。若下载失败，可在下载页点“获取 / 刷新 Cookie”登录一次。"
-                TextWrapping="Wrap"
-                Opacity="0.55"
-                FontSize="12"
-                Margin="0,4,0,0" />
-
-            <Button
-                x:Name="SetupButton"
-                Click="SetupButton_Click"
-                Content="打开环境准备（下载运行时与模型）"
-                Margin="0,12,0,0"
-                AutomationProperties.Name="打开环境准备" />
-
-            <StackPanel Orientation="Horizontal" Spacing="12" Margin="0,20,0,0">
-                <Button
-                    x:Name="SaveButton"
-                    Click="SaveButton_Click"
-                    Style="{StaticResource AccentButtonStyle}"
-                    Content="保存配置" />
-                <Button
-                    x:Name="TestButton"
-                    Click="TestButton_Click"
-                    Content="测试连接" />
-            </StackPanel>
-
-            <InfoBar
-                x:Name="StatusInfo"
-                IsOpen="False"
-                IsClosable="True"
-                Margin="0,16,0,0" />
-        </StackPanel>
-    </ScrollViewer>
+        </ScrollViewer>
+    </Grid>
 </Page>

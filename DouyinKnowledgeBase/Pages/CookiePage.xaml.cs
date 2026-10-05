@@ -51,14 +51,7 @@ public sealed partial class CookiePage : Page
 
     private void BackButton_Click(object sender, RoutedEventArgs e)
     {
-        if (Frame.CanGoBack)
-        {
-            Frame.GoBack();
-        }
-        else
-        {
-            Frame.Navigate(typeof(MainPage));
-        }
+        NavigationService.Current.GoBack();
     }
 
     private void ReloadButton_Click(object sender, RoutedEventArgs e)

@@ -59,19 +59,7 @@ public sealed partial class SettingsPage : Page
 
     private void SetupButton_Click(object sender, RoutedEventArgs e)
     {
-        Frame.Navigate(typeof(SetupPage));
-    }
-
-    private void BackButton_Click(object sender, RoutedEventArgs e)
-    {
-        if (Frame.CanGoBack)
-        {
-            Frame.GoBack();
-        }
-        else
-        {
-            Frame.Navigate(typeof(MainPage));
-        }
+        NavigationService.Current.Navigate(AppPage.Setup);
     }
 
     private void TemperatureSlider_ValueChanged(object sender, Microsoft.UI.Xaml.Controls.Primitives.RangeBaseValueChangedEventArgs e)

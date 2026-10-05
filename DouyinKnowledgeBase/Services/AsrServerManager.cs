@@ -15,6 +15,7 @@ public sealed class AsrServerManager
 
     private readonly StringBuilder _log = new();
     private Process? _process;
+    private string _runningDevice = "";
 
     /// <summary>常驻服务进程是否仍在运行。</summary>
     public bool IsRunning => _process is { HasExited: false };
@@ -48,10 +49,24 @@ public sealed class AsrServerManager
     /// <summary>按配置启动常驻服务；未开启或已在运行时不重复启动。</summary>
     public void Start(PipelineSettings settings)
     {
-        if (!settings.AsrResident || IsRunning)
+        if (!settings.AsrResident)
         {
             return;
         }
+
+        string device = string.IsNullOrWhiteSpace(settings.Device) ? "auto" : settings.Device;
+        if (IsRunning && string.Equals(_runningDevice, device, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        if (IsRunning)
+        {
+            // 设备变了（例如从 CPU 换成 GPU）：重启常驻服务，否则仍会按旧设备转写。
+            Stop();
+        }
+
+        StopStaleServers();
 
         if (string.IsNullOrWhiteSpace(settings.PythonPath) || !File.Exists(settings.PythonPath))
         {
@@ -78,7 +93,7 @@ public sealed class AsrServerManager
         psi.ArgumentList.Add("--runtime-dir");
         psi.ArgumentList.Add(AppPaths.RuntimeDir);
         psi.ArgumentList.Add("--device");
-        psi.ArgumentList.Add(string.IsNullOrWhiteSpace(settings.Device) ? "auto" : settings.Device);
+        psi.ArgumentList.Add(device);
         psi.ArgumentList.Add("--parent-pid");
         psi.ArgumentList.Add(Environment.ProcessId.ToString());
 
@@ -101,7 +116,8 @@ public sealed class AsrServerManager
                 process.BeginOutputReadLine();
                 process.BeginErrorReadLine();
                 _process = process;
-                Append($"常驻转写服务已启动（PID {process.Id}）。");
+                _runningDevice = device;
+                Append($"常驻转写服务已启动（PID {process.Id}，设备 {device}）。");
             }
         }
         catch (Exception ex)
@@ -115,6 +131,7 @@ public sealed class AsrServerManager
     {
         Process? process = _process;
         _process = null;
+        _runningDevice = "";
         if (process is null)
         {
             return;
@@ -142,6 +159,75 @@ public sealed class AsrServerManager
         catch (Exception)
         {
             // 进程可能已退出。
+        }
+    }
+
+    /// <summary>
+    /// 关闭上一次残留的常驻服务（例如应用被强杀后留下的进程）。
+    /// 这些进程会各占约 2 GB 内存，堆积后会让模型加载因内存不足而原生崩溃。
+    /// </summary>
+    private void StopStaleServers()
+    {
+        try
+        {
+            if (!File.Exists(InfoPath))
+            {
+                return;
+            }
+
+            int pid;
+            using (JsonDocument doc = JsonDocument.Parse(File.ReadAllText(InfoPath)))
+            {
+                pid = doc.RootElement.TryGetProperty("pid", out JsonElement p) ? p.GetInt32() : 0;
+            }
+
+            if (pid <= 0 || pid == Environment.ProcessId)
+            {
+                return;
+            }
+
+            try
+            {
+                RequestShutdown().GetAwaiter().GetResult();
+            }
+            catch (Exception)
+            {
+                // 服务可能已经不可达，下面直接结束进程。
+            }
+
+            try
+            {
+                using Process stale = Process.GetProcessById(pid);
+                // PID 可能已被复用：只有确认是 python 进程才结束，避免误杀无关程序。
+                if (!stale.ProcessName.StartsWith("python", StringComparison.OrdinalIgnoreCase))
+                {
+                    return;
+                }
+
+                if (!stale.HasExited && !stale.WaitForExit(3000))
+                {
+                    stale.Kill(entireProcessTree: true);
+                }
+
+                Append($"已清理残留的常驻转写服务（PID {pid}）。");
+            }
+            catch (Exception)
+            {
+                // 进程不存在或无权限结束：忽略。
+            }
+
+            try
+            {
+                File.Delete(InfoPath);
+            }
+            catch (Exception)
+            {
+                // 忽略。
+            }
+        }
+        catch (Exception)
+        {
+            // 残留服务清理属于尽力而为，失败不影响正常启动。
         }
     }
 
