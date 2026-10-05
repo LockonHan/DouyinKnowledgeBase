@@ -30,7 +30,12 @@ DisableProgramGroupPage=yes
 DisableWelcomePage=no
 PrivilegesRequired=lowest
 OutputDir=out
+#ifndef LiteEdition
 OutputBaseFilename={#AppNameEn}-Setup-{#AppVersion}-x64
+#else
+; 瘦身版：内置 CPU 版 PyTorch，GPU 用户首次运行时按需下载 CUDA 版（约 2.5 GB）
+OutputBaseFilename={#AppNameEn}-Setup-{#AppVersion}-x64-Lite
+#endif
 SetupIconFile=..\DouyinKnowledgeBase\Assets\AppIcon.ico
 UninstallDisplayIcon={app}\app\{#AppExeName}
 Compression=lzma2/max
