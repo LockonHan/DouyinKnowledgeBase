@@ -343,7 +343,7 @@ else {
     if ($LASTEXITCODE -ne 0) { throw "FunASR 工具链安装失败" }
 
     Write-Step "验证内置运行时"
-    & $pyExe -c "import torch, funasr, modelscope, playwright, curl_cffi, sentencepiece; print('torch', torch.__version__); print('cuda', torch.cuda.is_available()); print('funasr', funasr.__version__); print('playwright', playwright.__version__)"
+    & $pyExe -c "import torch, funasr, modelscope, playwright, curl_cffi, sentencepiece; import importlib.metadata as im; print('torch', torch.__version__); print('cuda', torch.cuda.is_available()); print('funasr', funasr.__version__); print('playwright', im.version('playwright'))"
     if ($LASTEXITCODE -ne 0) { throw "内置运行时自检失败" }
     Write-Info "CPU 版 PyTorch 已内置；GPU 用户首次运行时由环境准备向导按需下载 CUDA 版"
 }
