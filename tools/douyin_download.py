@@ -13,7 +13,32 @@ from __future__ import annotations
 
 import os
 import re
+import shutil
+import tempfile
 import time
+
+
+def _ensure_curl_ca_bundle():
+    """curl_cffi（libcurl）在 Windows 上用 ANSI fopen 打开 CA 文件，
+    安装路径含非 ASCII 字符（如中文目录）时会加载失败，报 curl: (77)。
+    这里把 certifi 的 cacert.pem 复制到纯 ASCII 的临时目录并设置
+    CURL_CA_BUNDLE，规避该问题。"""
+    if os.environ.get("CURL_CA_BUNDLE"):
+        return
+    try:
+        import certifi
+        src = certifi.where()
+        if src.isascii():
+            return
+        dest = os.path.join(tempfile.gettempdir(), "douyin_kb_cacert.pem")
+        if not (os.path.isfile(dest) and os.path.getsize(dest) == os.path.getsize(src)):
+            shutil.copyfile(src, dest)
+        os.environ["CURL_CA_BUNDLE"] = dest
+    except Exception:
+        pass  # 找不到 certifi 时保持现状，由上层报错
+
+
+_ensure_curl_ca_bundle()
 
 UA = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
@@ -151,7 +176,7 @@ def fetch_detail(video_url, cookies_path, emit, timeout_ms=60000, settle_ms=9000
                     captured["detail"] = data
 
             page.on("response", on_response)
-            emit(stage="download", percent=-1, message="正在用无头浏览器打开抖音视频页…")
+            emit(stage="download", percent=-1, message="正在用无头浏览器打开抖音页面…")
             page.goto(video_url, wait_until="domcontentloaded", timeout=timeout_ms)
 
             deadline = time.time() + settle_ms / 1000.0
@@ -208,11 +233,17 @@ def _stream_download(url, dest, on_progress, timeout=120):
 def download(share_text_or_url, videos_dir, emit, cookies=None, timeout_ms=60000):
     """完整下载流程，返回 (本地 mp4 路径, 标题)。"""
     url = extract_url(share_text_or_url) or share_text_or_url
-    video_id, video_url = resolve_video_id(url)
-    emit(stage="download", percent=-1, message=f"已识别视频 ID：{video_id}")
+    match = _VIDEO_ID_RE.search(url)
+    video_id = match.group(1) if match else ""
+    video_url = VIDEO_PAGE.format(vid=video_id) if video_id else url
+    if video_id:
+        emit(stage="download", percent=-1, message=f"已识别视频 ID：{video_id}")
+    else:
+        emit(stage="download", percent=-1, message="正在用无头浏览器解析分享链接…")
 
     detail = fetch_detail(video_url, cookies, emit, timeout_ms=timeout_ms)
     aweme = detail.get("aweme_detail") or {}
+    video_id = str(aweme.get("aweme_id") or video_id or "douyin")
     title = sanitize_name(aweme.get("desc"), video_id)
     video = aweme.get("video") or {}
     url_list = [u for u in ((video.get("play_addr") or {}).get("url_list") or [])
@@ -233,7 +264,7 @@ def download(share_text_or_url, videos_dir, emit, cookies=None, timeout_ms=60000
 
     last_error = None
     for candidate in url_list:
-        state = {"got": 0, "total": 0, "tick": 0.0, "name": title}
+        state = {"got": 0, "total": 0, "tick": 0.0, "started": time.time(), "name": title}
 
         def on_progress(got, total, _state=state):
             _state["got"] = got
@@ -243,8 +274,21 @@ def download(share_text_or_url, videos_dir, emit, cookies=None, timeout_ms=60000
                 return
             _state["tick"] = now
             percent = round(got * 100.0 / total, 1) if total else -1
+            elapsed = max(now - _state["started"], 0.001)
+            speed = got / elapsed
+            speed_text = (f"{speed / 1048576:.1f} MB/s"
+                          if speed >= 1048576 else f"{speed / 1024:.0f} KB/s")
+            if total and got >= total:
+                eta_text = "0 秒"
+            elif total and speed > 0:
+                eta = (total - got) / speed
+                eta_text = (f"{eta:.0f} 秒" if eta < 60
+                            else f"{int(eta // 60)} 分 {int(eta % 60)} 秒")
+            else:
+                eta_text = "计算中"
             emit(stage="download", percent=percent,
-                 message=f"下载中 {got // 1024} / {total // 1024 if total else '?'} KB")
+                 message=f"下载中 {got // 1024} / {total // 1024 if total else '?'} KB｜"
+                         f"{speed_text}｜剩余 {eta_text}")
 
         try:
             _stream_download(candidate, dest, on_progress)

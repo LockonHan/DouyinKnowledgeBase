@@ -17,12 +17,15 @@
 """
 
 import argparse
+import collections
 import json
 import os
 import re
 import shutil
 import subprocess
 import sys
+import threading
+import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -42,6 +45,81 @@ def emit(**fields):
 def fail(message):
     emit(stage="error", message=message)
     sys.exit(1)
+
+
+# 转写耗时 ÷ 音频时长的估算系数，仅用于展示进度，不参与实际转写。
+# 取值偏保守：宁可进度走慢一些，也不要长时间停在 90%。
+REAL_TIME_FACTOR = {"cuda": 0.08, "cpu": 0.5, "auto": 0.15}
+TRANSCRIBE_MAX_PERCENT = 90
+
+
+def wav_duration_seconds(wav):
+    """由 16kHz 单声道 16bit WAV 的字节数推算音频时长（秒）。"""
+    try:
+        return max(0.0, os.path.getsize(wav) - 44) / 32000.0
+    except OSError:
+        return 0.0
+
+
+def real_time_factor(device):
+    key = (device or "auto").strip().lower()
+    if key.startswith("cuda") or key.startswith("gpu"):
+        return REAL_TIME_FACTOR["cuda"]
+    if key.startswith("cpu"):
+        return REAL_TIME_FACTOR["cpu"]
+    return REAL_TIME_FACTOR["auto"]
+
+
+class TranscribeProgress:
+    """阻塞式转写期间，按音频时长与设备估算百分比并定期上报。
+
+    只读取音频时长与设备类型，不改变 ASR 调用方式；实际耗时超出估算后
+    转为不确定态（percent=-1），避免进度条长时间停在 90%。
+    """
+
+    INTERVAL_SECONDS = 1.0
+
+    def __init__(self, wav, device, message):
+        duration = wav_duration_seconds(wav)
+        # 估算下限 2 秒，避免极短音频算出过小的分母。
+        self.estimate = max(2.0, duration * real_time_factor(device))
+        self.message = message
+        self._stop = threading.Event()
+        self._thread = None
+        self._started = 0.0
+
+    def __enter__(self):
+        self._started = time.monotonic()
+        self._thread = threading.Thread(target=self._loop, daemon=True)
+        self._thread.start()
+        emit(stage="transcribe", percent=0, message=self.message)
+        return self
+
+    def __exit__(self, *exc_info):
+        self._stop.set()
+        if self._thread is not None:
+            self._thread.join(timeout=2.0)
+        return False
+
+    def _loop(self):
+        last_percent = 0
+        while not self._stop.wait(self.INTERVAL_SECONDS):
+            elapsed = time.monotonic() - self._started
+            if elapsed >= self.estimate:
+                if last_percent != -1:
+                    last_percent = -1
+                    emit(stage="transcribe", percent=-1,
+                         message=self.message + "；已超过预估用时（约 {:.0f}s），仍在转写…".format(
+                             self.estimate))
+                continue
+
+            percent = int(elapsed / self.estimate * TRANSCRIBE_MAX_PERCENT)
+            if percent == last_percent:
+                continue
+            last_percent = percent
+            emit(stage="transcribe", percent=percent,
+                 message=self.message + " {:.0f}%（已用 {:.0f}s，预估总耗时约 {:.0f}s）".format(
+                     percent, elapsed, self.estimate))
 
 
 def which(name, override):
@@ -143,9 +221,10 @@ def extract_audio(ffmpeg, video, wav):
     return wav
 
 
-def transcribe_via_resident(wav, out_base, runtime_dir):
-    emit(stage="transcribe", percent=-1, message="正在使用常驻转写服务（模型已就绪）…")
-    result = asr_client.transcribe(runtime_dir, wav, out_base)
+def transcribe_via_resident(wav, out_base, runtime_dir, device):
+    message = "正在转写（常驻服务，模型已就绪）"
+    with TranscribeProgress(wav, device, message):
+        result = asr_client.transcribe(runtime_dir, wav, out_base)
     txt = result.get("output") or (out_base + ".txt")
     if not os.path.isfile(txt):
         raise RuntimeError("常驻服务未生成转写稿")
@@ -156,21 +235,23 @@ def transcribe_via_resident(wav, out_base, runtime_dir):
 
 
 def transcribe_oneshot(python_exe, script, wav, out_base, device):
-    emit(stage="transcribe", percent=-1, message="正在调用本地 FunASR 转写，首次加载模型较慢…")
     cmd = [python_exe, script, wav, "-o", out_base, "--device", device]
-    for proc, line in stream(cmd):
-        if line:
-            emit(stage="transcribe", message=line[:200])
+    recent = collections.deque(maxlen=8)
+    with TranscribeProgress(wav, device, "正在转写（本地 FunASR，首次加载模型较慢）"):
+        for proc, line in stream(cmd):
+            if line:
+                recent.append(line.strip())
     txt = out_base + ".txt"
     if proc.returncode != 0 or not os.path.isfile(txt):
-        fail("语音转写失败（FunASR）。")
+        detail = "；".join(recent) or "无输出"
+        fail("语音转写失败（FunASR）：" + detail[:300])
     return txt
 
 
 def transcribe(python_exe, script, wav, out_base, device, asr_mode, runtime_dir):
     if asr_mode in ("auto", "resident"):
         try:
-            return transcribe_via_resident(wav, out_base, runtime_dir)
+            return transcribe_via_resident(wav, out_base, runtime_dir, device)
         except Exception as exc:
             if asr_mode == "resident":
                 fail(f"常驻转写服务不可用：{exc}")

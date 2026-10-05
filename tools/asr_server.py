@@ -18,10 +18,13 @@ import argparse
 import ctypes
 import json
 import os
+import signal
 import socket
+import subprocess
 import sys
 import threading
 import time
+import urllib.request
 import secrets
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
@@ -31,6 +34,7 @@ import asr_core  # noqa: E402
 LOCK = threading.Lock()
 STATE = {"model": None, "device": "cpu", "model_id": "", "started": 0.0, "token": ""}
 SERVER_INFO = "asr-server.json"
+SERVER_PIDS = "asr-server.pids"
 
 
 def emit(**fields):
@@ -116,6 +120,69 @@ class Handler(BaseHTTPRequestHandler):
             self._send(500, {"status": "error", "message": str(exc)})
 
 
+def _is_python_process(pid: int) -> bool:
+    """确认该 PID 现在是 python 进程（防止 PID 被复用后误杀无关程序）。"""
+    try:
+        out = subprocess.run(
+            ["tasklist", "/FI", f"PID eq {pid}", "/FO", "CSV", "/NH"],
+            capture_output=True, text=True, timeout=15,
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+        ).stdout
+    except Exception:
+        return False
+    return "python" in (out or "").lower()
+
+
+def _reap_stale_servers(pid_file: str) -> None:
+    """回收上一次留下的常驻服务，避免多个服务同时把模型读进内存。
+
+    发现文件可能被清理掉，所以另存一份 PID 清单做兜底。
+    """
+    try:
+        with open(pid_file, "r", encoding="utf-8") as fh:
+            pids = [int(x) for x in fh.read().split() if x.strip().isdigit()]
+    except (OSError, ValueError):
+        pids = []
+
+    for pid in pids:
+        if pid == os.getpid() or not _is_python_process(pid):
+            continue
+        try:
+            os.kill(pid, signal.SIGTERM)
+            emit(stage="stopped", message=f"已结束后台残留的常驻转写服务（PID {pid}）")
+        except OSError:
+            pass
+
+    try:
+        with open(pid_file, "w", encoding="utf-8") as fh:
+            fh.write("\n".join(str(x) for x in pids[-8:]) + ("\n" if pids else ""))
+            fh.write(str(os.getpid()) + "\n")
+    except OSError:
+        pass
+
+
+def _stop_existing_server(info_path: str) -> None:
+    """启动前先关掉上一次残留的常驻服务，避免多个服务同时把模型读进内存。"""
+    try:
+        with open(info_path, "r", encoding="utf-8") as fh:
+            info = json.load(fh)
+    except (OSError, ValueError):
+        return
+    host, port = info.get("host"), info.get("port")
+    if not host or not port or info.get("pid") == os.getpid():
+        return
+    request = urllib.request.Request(
+        f"http://{host}:{port}/shutdown", data=b"{}",
+        headers={"Content-Type": "application/json; charset=utf-8",
+                 "X-DouKB-Token": info.get("token", "")})
+    try:
+        with urllib.request.urlopen(request, timeout=5):
+            pass
+        emit(stage="stopped", message="已关闭上一次残留的常驻转写服务")
+    except Exception:
+        return
+
+
 def _parent_alive(pid: int) -> bool:
     """在 Windows 上判断宿主进程是否仍存在。"""
     if not pid:
@@ -161,6 +228,10 @@ def main():
 
     os.makedirs(args.runtime_dir, exist_ok=True)
     info_path = os.path.join(args.runtime_dir, SERVER_INFO)
+
+    # 先关闭上一次残留的常驻服务（同一时间只允许一个，避免重复占用内存）。
+    _stop_existing_server(info_path)
+    _reap_stale_servers(os.path.join(args.runtime_dir, SERVER_PIDS))
 
     # 清理上一次运行残留的发现文件，避免客户端连接到已经没有的旧服务。
     for stale in (info_path, info_path + ".error", info_path + ".tmp"):
