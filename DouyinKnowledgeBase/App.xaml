@@ -8,7 +8,10 @@
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
-                <!-- Other merged dictionaries here -->
+                <!-- 设计令牌：颜色 / 字体 / 字阶 / 间距 / 圆角 -->
+                <ResourceDictionary Source="ms-appx:///Themes/Tokens.xaml" />
+                <!-- 控件样式：只引用令牌，不写字面色值 -->
+                <ResourceDictionary Source="ms-appx:///Themes/Controls.xaml" />
             </ResourceDictionary.MergedDictionaries>
             <!-- Other app resources here -->
         </ResourceDictionary>

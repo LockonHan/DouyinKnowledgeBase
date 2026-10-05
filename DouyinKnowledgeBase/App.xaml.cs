@@ -70,14 +70,19 @@ public partial class App : Application
                 return;
             }
 
-            string python = RepoLocator.EffectivePython(settings.PythonPath);
-            if (string.IsNullOrWhiteSpace(python))
+            // 这里会启动/探测子进程（可能耗时数秒）。必须放到后台线程执行：
+            // 在 UI 线程上同步等待会让窗口停止响应，Windows 会判定 AppHang 并强制关闭应用。
+            await Task.Run(() =>
             {
-                return;
-            }
+                string python = RepoLocator.EffectivePython(settings.PythonPath);
+                if (string.IsNullOrWhiteSpace(python))
+                {
+                    return;
+                }
 
-            settings.PythonPath = python;
-            AsrServer.Start(settings);
+                settings.PythonPath = python;
+                AsrServer.Start(settings);
+            });
         }
         catch (Exception)
         {
@@ -87,6 +92,22 @@ public partial class App : Application
 
     private void OnWindowClosed(object sender, WindowEventArgs args)
     {
-        AsrServer.Stop();
+        // 关闭应用时结束仍在运行的安装/下载进程，避免其成为孤儿进程继续占用带宽。
+        EnvironmentService.KillActiveInstall();
+
+        // 停止常驻服务需要等待子进程退出（可能数秒）。不能在 UI 线程上等待，
+        // 否则关闭窗口时会因为“无响应”被 Windows 记为 AppHang。常驻服务本身带
+        // --parent-pid 守卫，即便这里来不及收尾，宿主退出后它也会自行结束。
+        Task.Run(() =>
+        {
+            try
+            {
+                AsrServer.Stop();
+            }
+            catch (Exception)
+            {
+                // 忽略：进程可能已经退出。
+            }
+        });
     }
 }

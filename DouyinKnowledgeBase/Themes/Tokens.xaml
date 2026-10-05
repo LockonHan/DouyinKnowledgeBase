@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    设计令牌：颜色 / 字体 / 字阶 / 间距 / 圆角。
+    颜色按明暗两套主题提供，控件与页面只引用这里的语义名，不写字面色值。
+-->
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- ==================== 颜色 ==================== -->
+    <ResourceDictionary.ThemeDictionaries>
+
+        <!-- 明亮：冷调纸底，避免暖奶油色 -->
+        <ResourceDictionary x:Key="Light">
+            <!-- 系统强调色改为本应用的青（焦点环、滑块、开关随之统一） -->
+            <Color x:Key="SystemAccentColor">#0FB5BE</Color>
+            <Color x:Key="SystemAccentColorLight1">#29C3CB</Color>
+            <Color x:Key="SystemAccentColorLight2">#57D2D8</Color>
+            <Color x:Key="SystemAccentColorLight3">#86E0E5</Color>
+            <Color x:Key="SystemAccentColorDark1">#0C9AA2</Color>
+            <Color x:Key="SystemAccentColorDark2">#097F86</Color>
+            <Color x:Key="SystemAccentColorDark3">#06646A</Color>
+            <SolidColorBrush x:Key="DouKBPaperBrush" Color="#F4F5F2" />
+            <SolidColorBrush x:Key="DouKBSunkBrush" Color="#EAEDE8" />
+            <SolidColorBrush x:Key="DouKBSurfaceBrush" Color="#FBFBF9" />
+            <SolidColorBrush x:Key="DouKBFrameBrush" Color="#DFE3DD" />
+            <SolidColorBrush x:Key="DouKBFrameMarkBrush" Color="#8B949E" />
+            <SolidColorBrush x:Key="DouKBInkBrush" Color="#1B2430" />
+            <SolidColorBrush x:Key="DouKBInk2Brush" Color="#59636F" />
+            <SolidColorBrush x:Key="DouKBInk3Brush" Color="#8B949E" />
+            <SolidColorBrush x:Key="DouKBRuleBrush" Color="#DCE0DA" />
+            <SolidColorBrush x:Key="DouKBLiveBrush" Color="#0FB5BE" />
+            <SolidColorBrush x:Key="DouKBLiveSoftBrush" Color="#DFF3F3" />
+            <SolidColorBrush x:Key="DouKBStrongBrush" Color="#1B2430" />
+            <SolidColorBrush x:Key="DouKBStrongHoverBrush" Color="#2C3846" />
+            <SolidColorBrush x:Key="DouKBStrongPressedBrush" Color="#0F1620" />
+            <SolidColorBrush x:Key="DouKBOnStrongBrush" Color="#F4F5F2" />
+            <SolidColorBrush x:Key="DouKBHoverWashBrush" Color="#EAEDE7" />
+        </ResourceDictionary>
+
+        <!-- 暗色：低饱和深灰，不用纯黑 -->
+        <ResourceDictionary x:Key="Dark">
+            <Color x:Key="SystemAccentColor">#2BC8D1</Color>
+            <Color x:Key="SystemAccentColorLight1">#4FD5DC</Color>
+            <Color x:Key="SystemAccentColorLight2">#7AE1E6</Color>
+            <Color x:Key="SystemAccentColorLight3">#A5ECEF</Color>
+            <Color x:Key="SystemAccentColorDark1">#1FA6AF</Color>
+            <Color x:Key="SystemAccentColorDark2">#16848C</Color>
+            <Color x:Key="SystemAccentColorDark3">#0E6268</Color>
+            <SolidColorBrush x:Key="DouKBPaperBrush" Color="#15181A" />
+            <SolidColorBrush x:Key="DouKBSunkBrush" Color="#1C2023" />
+            <SolidColorBrush x:Key="DouKBSurfaceBrush" Color="#1F2326" />
+            <SolidColorBrush x:Key="DouKBFrameBrush" Color="#2A2F32" />
+            <SolidColorBrush x:Key="DouKBFrameMarkBrush" Color="#767E85" />
+            <SolidColorBrush x:Key="DouKBInkBrush" Color="#E9ECEA" />
+            <SolidColorBrush x:Key="DouKBInk2Brush" Color="#A3ABB1" />
+            <SolidColorBrush x:Key="DouKBInk3Brush" Color="#757D84" />
+            <SolidColorBrush x:Key="DouKBRuleBrush" Color="#2C3235" />
+            <SolidColorBrush x:Key="DouKBLiveBrush" Color="#2BC8D1" />
+            <SolidColorBrush x:Key="DouKBLiveSoftBrush" Color="#113236" />
+            <SolidColorBrush x:Key="DouKBStrongBrush" Color="#E9ECEA" />
+            <SolidColorBrush x:Key="DouKBStrongHoverBrush" Color="#FFFFFF" />
+            <SolidColorBrush x:Key="DouKBStrongPressedBrush" Color="#C9D0CE" />
+            <SolidColorBrush x:Key="DouKBOnStrongBrush" Color="#15181A" />
+            <SolidColorBrush x:Key="DouKBHoverWashBrush" Color="#242A2D" />
+        </ResourceDictionary>
+
+        <!-- 高对比度：交由系统配色 -->
+        <ResourceDictionary x:Key="HighContrast">
+            <SolidColorBrush x:Key="DouKBPaperBrush" Color="{ThemeResource SystemColorWindowColor}" />
+            <SolidColorBrush x:Key="DouKBSunkBrush" Color="{ThemeResource SystemColorWindowColor}" />
+            <SolidColorBrush x:Key="DouKBSurfaceBrush" Color="{ThemeResource SystemColorWindowColor}" />
+            <SolidColorBrush x:Key="DouKBFrameBrush" Color="{ThemeResource SystemColorButtonFaceColor}" />
+            <SolidColorBrush x:Key="DouKBFrameMarkBrush" Color="{ThemeResource SystemColorGrayTextColor}" />
+            <SolidColorBrush x:Key="DouKBInkBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
+            <SolidColorBrush x:Key="DouKBInk2Brush" Color="{ThemeResource SystemColorWindowTextColor}" />
+            <SolidColorBrush x:Key="DouKBInk3Brush" Color="{ThemeResource SystemColorGrayTextColor}" />
+            <SolidColorBrush x:Key="DouKBRuleBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
+            <SolidColorBrush x:Key="DouKBLiveBrush" Color="{ThemeResource SystemColorHighlightColor}" />
+            <SolidColorBrush x:Key="DouKBLiveSoftBrush" Color="{ThemeResource SystemColorWindowColor}" />
+            <SolidColorBrush x:Key="DouKBStrongBrush" Color="{ThemeResource SystemColorHighlightColor}" />
+            <SolidColorBrush x:Key="DouKBStrongHoverBrush" Color="{ThemeResource SystemColorHighlightColor}" />
+            <SolidColorBrush x:Key="DouKBStrongPressedBrush" Color="{ThemeResource SystemColorHighlightColor}" />
+            <SolidColorBrush x:Key="DouKBOnStrongBrush" Color="{ThemeResource SystemColorHighlightTextColor}" />
+            <SolidColorBrush x:Key="DouKBHoverWashBrush" Color="{ThemeResource SystemColorWindowColor}" />
+        </ResourceDictionary>
+    </ResourceDictionary.ThemeDictionaries>
+
+    <!-- ==================== 字体 ==================== -->
+    <!-- 操作面：黑体（界面、按钮、元信息） -->
+    <FontFamily x:Key="DouKBUiFont">Microsoft YaHei UI</FontFamily>
+    <!-- 阅读面：宋体（正文与文章标题），用于区分"读"与"用" -->
+    <FontFamily x:Key="DouKBReadFont">SimSun</FontFamily>
+
+    <!-- ==================== 字阶 ==================== -->
+    <x:Double x:Key="DouKBDisplayFontSize">29</x:Double>
+    <x:Double x:Key="DouKBSectionFontSize">19</x:Double>
+    <x:Double x:Key="DouKBRowTitleFontSize">17.5</x:Double>
+    <x:Double x:Key="DouKBReadingFontSize">15.5</x:Double>
+    <x:Double x:Key="DouKBReadingLineHeight">30</x:Double>
+    <x:Double x:Key="DouKBLedgerFontSize">13</x:Double>
+    <x:Double x:Key="DouKBMetaFontSize">12</x:Double>
+    <x:Double x:Key="DouKBCaptionFontSize">11.5</x:Double>
+
+    <!-- ==================== 间距（8pt 栅格） ==================== -->
+    <x:Double x:Key="DouKBSpace1">4</x:Double>
+    <x:Double x:Key="DouKBSpace2">8</x:Double>
+    <x:Double x:Key="DouKBSpace3">12</x:Double>
+    <x:Double x:Key="DouKBSpace4">16</x:Double>
+    <x:Double x:Key="DouKBSpace5">24</x:Double>
+    <x:Double x:Key="DouKBSpace6">32</x:Double>
+    <x:Double x:Key="DouKBSpace7">46</x:Double>
+
+    <!-- ==================== 圆角 ==================== -->
+    <CornerRadius x:Key="DouKBCornerSmall">3</CornerRadius>
+    <CornerRadius x:Key="DouKBCorner">4</CornerRadius>
+    <CornerRadius x:Key="DouKBCornerLarge">8</CornerRadius>
+
+    <!-- ==================== 尺寸 ==================== -->
+    <x:Double x:Key="DouKBRailWidth">172</x:Double>
+    <x:Double x:Key="DouKBFrameWidth">44</x:Double>
+    <x:Double x:Key="DouKBFrameHeight">78</x:Double>
+    <x:Double x:Key="DouKBReadingWidth">672</x:Double>
+
+</ResourceDictionary>

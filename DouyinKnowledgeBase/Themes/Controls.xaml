@@ -1,0 +1,365 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    控件样式：只引用 Tokens.xaml 的语义名，页面不写死色值与字号。
+    依赖 Tokens.xaml 先被合并（见 App.xaml）。
+-->
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- ==================== 文本 ==================== -->
+    <Style x:Key="DouKBDisplayTextStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource DouKBReadFont}" />
+        <Setter Property="FontSize" Value="{StaticResource DouKBDisplayFontSize}" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="Foreground" Value="{ThemeResource DouKBInkBrush}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
+    <Style x:Key="DouKBSectionTitleStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource DouKBReadFont}" />
+        <Setter Property="FontSize" Value="{StaticResource DouKBSectionFontSize}" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="Foreground" Value="{ThemeResource DouKBInkBrush}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
+    <Style x:Key="DouKBRowTitleStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource DouKBReadFont}" />
+        <Setter Property="FontSize" Value="{StaticResource DouKBRowTitleFontSize}" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="Foreground" Value="{ThemeResource DouKBInkBrush}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="LineHeight" Value="26" />
+    </Style>
+
+    <Style x:Key="DouKBReadingTextStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource DouKBReadFont}" />
+        <Setter Property="FontSize" Value="{StaticResource DouKBReadingFontSize}" />
+        <Setter Property="Foreground" Value="{ThemeResource DouKBInkBrush}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="LineHeight" Value="{StaticResource DouKBReadingLineHeight}" />
+        <Setter Property="IsTextSelectionEnabled" Value="True" />
+    </Style>
+
+    <Style x:Key="DouKBQuoteTextStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource DouKBReadFont}" />
+        <Setter Property="FontSize" Value="15" />
+        <Setter Property="Foreground" Value="{ThemeResource DouKBInk2Brush}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="LineHeight" Value="29" />
+        <Setter Property="IsTextSelectionEnabled" Value="True" />
+    </Style>
+
+    <Style x:Key="DouKBLedgerTextStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource DouKBUiFont}" />
+        <Setter Property="FontSize" Value="{StaticResource DouKBLedgerFontSize}" />
+        <Setter Property="Foreground" Value="{ThemeResource DouKBInk2Brush}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="LineHeight" Value="21" />
+    </Style>
+
+    <Style x:Key="DouKBMetaTextStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource DouKBUiFont}" />
+        <Setter Property="FontSize" Value="{StaticResource DouKBMetaFontSize}" />
+        <Setter Property="Foreground" Value="{ThemeResource DouKBInk3Brush}" />
+    </Style>
+
+    <Style x:Key="DouKBCaptionTextStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource DouKBUiFont}" />
+        <Setter Property="FontSize" Value="{StaticResource DouKBCaptionFontSize}" />
+        <Setter Property="Foreground" Value="{ThemeResource DouKBInk3Brush}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="LineHeight" Value="18" />
+    </Style>
+
+    <!-- 处理中状态文本（唯一强调色使用点） -->
+    <Style x:Key="DouKBLiveTextStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource DouKBUiFont}" />
+        <Setter Property="FontSize" Value="{StaticResource DouKBMetaFontSize}" />
+        <Setter Property="Foreground" Value="{ThemeResource DouKBLiveBrush}" />
+    </Style>
+
+    <Style x:Key="DouKBNumericTextStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource DouKBUiFont}" />
+        <Setter Property="FontSize" Value="{StaticResource DouKBCaptionFontSize}" />
+        <Setter Property="Foreground" Value="{ThemeResource DouKBInk2Brush}" />
+        <Setter Property="HorizontalTextAlignment" Value="Center" />
+    </Style>
+
+    <!-- ==================== 按钮 ==================== -->
+    <!-- 主操作：墨黑实心（设计上的"唯一实心按钮"） -->
+    <Style x:Key="DouKBStrongButtonStyle" TargetType="Button">
+        <Setter Property="Background" Value="{ThemeResource DouKBStrongBrush}" />
+        <Setter Property="Foreground" Value="{ThemeResource DouKBOnStrongBrush}" />
+        <Setter Property="FontFamily" Value="{StaticResource DouKBUiFont}" />
+        <Setter Property="FontSize" Value="{StaticResource DouKBLedgerFontSize}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Padding" Value="20,10" />
+        <Setter Property="CornerRadius" Value="{StaticResource DouKBCorner}" />
+        <Setter Property="HorizontalAlignment" Value="Left" />
+        <Setter Property="UseSystemFocusVisuals" Value="True" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border
+                        x:Name="Root"
+                        Background="{TemplateBinding Background}"
+                        CornerRadius="{TemplateBinding CornerRadius}"
+                        Padding="{TemplateBinding Padding}">
+                        <ContentPresenter
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Content="{TemplateBinding Content}"
+                            ContentTemplate="{TemplateBinding ContentTemplate}"
+                            FontFamily="{TemplateBinding FontFamily}"
+                            FontSize="{TemplateBinding FontSize}"
+                            FontWeight="{TemplateBinding FontWeight}"
+                            Foreground="{TemplateBinding Foreground}" />
+                        <VisualStateManager.VisualStateGroups>
+                            <VisualStateGroup x:Name="CommonStates">
+                                <VisualState x:Name="Normal" />
+                                <VisualState x:Name="PointerOver">
+                                    <VisualState.Setters>
+                                        <Setter Target="Root.Background" Value="{ThemeResource DouKBStrongHoverBrush}" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="Pressed">
+                                    <VisualState.Setters>
+                                        <Setter Target="Root.Background" Value="{ThemeResource DouKBStrongPressedBrush}" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="Disabled">
+                                    <VisualState.Setters>
+                                        <Setter Target="Root.Opacity" Value="0.4" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                            </VisualStateGroup>
+                        </VisualStateManager.VisualStateGroups>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- 次级操作：纯文字，悬停有极浅底色 -->
+    <Style x:Key="DouKBQuietButtonStyle" TargetType="Button">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{ThemeResource DouKBInk2Brush}" />
+        <Setter Property="FontFamily" Value="{StaticResource DouKBUiFont}" />
+        <Setter Property="FontSize" Value="{StaticResource DouKBLedgerFontSize}" />
+        <Setter Property="Padding" Value="6,6" />
+        <Setter Property="CornerRadius" Value="{StaticResource DouKBCornerSmall}" />
+        <Setter Property="HorizontalAlignment" Value="Left" />
+        <Setter Property="UseSystemFocusVisuals" Value="True" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border
+                        x:Name="Root"
+                        Background="Transparent"
+                        CornerRadius="{TemplateBinding CornerRadius}"
+                        Padding="{TemplateBinding Padding}">
+                        <ContentPresenter
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Content="{TemplateBinding Content}"
+                            ContentTemplate="{TemplateBinding ContentTemplate}"
+                            FontFamily="{TemplateBinding FontFamily}"
+                            FontSize="{TemplateBinding FontSize}"
+                            Foreground="{TemplateBinding Foreground}" />
+                        <VisualStateManager.VisualStateGroups>
+                            <VisualStateGroup x:Name="CommonStates">
+                                <VisualState x:Name="Normal" />
+                                <VisualState x:Name="PointerOver">
+                                    <VisualState.Setters>
+                                        <Setter Target="Root.Background" Value="{ThemeResource DouKBHoverWashBrush}" />
+                                        <Setter Target="Root.Opacity" Value="1" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="Pressed">
+                                    <VisualState.Setters>
+                                        <Setter Target="Root.Opacity" Value="0.6" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="Disabled">
+                                    <VisualState.Setters>
+                                        <Setter Target="Root.Opacity" Value="0.4" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                            </VisualStateGroup>
+                        </VisualStateManager.VisualStateGroups>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- 筛选切换：选中态用墨黑下划线 -->
+    <Style x:Key="DouKBTabButtonStyle" TargetType="Button">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{ThemeResource DouKBInk3Brush}" />
+        <Setter Property="FontFamily" Value="{StaticResource DouKBUiFont}" />
+        <Setter Property="FontSize" Value="{StaticResource DouKBLedgerFontSize}" />
+        <Setter Property="Padding" Value="0,0,0,6" />
+        <Setter Property="CornerRadius" Value="0" />
+        <Setter Property="HorizontalAlignment" Value="Left" />
+        <Setter Property="UseSystemFocusVisuals" Value="True" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border
+                        x:Name="Root"
+                        Background="Transparent"
+                        BorderBrush="Transparent"
+                        BorderThickness="0,0,0,2"
+                        Padding="{TemplateBinding Padding}">
+                        <ContentPresenter
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Content="{TemplateBinding Content}"
+                            ContentTemplate="{TemplateBinding ContentTemplate}"
+                            FontFamily="{TemplateBinding FontFamily}"
+                            FontSize="{TemplateBinding FontSize}"
+                            Foreground="{TemplateBinding Foreground}" />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="DouKBTabButtonSelectedStyle" TargetType="Button" BasedOn="{StaticResource DouKBTabButtonStyle}">
+        <Setter Property="Foreground" Value="{ThemeResource DouKBInkBrush}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border
+                        Background="Transparent"
+                        BorderBrush="{ThemeResource DouKBInkBrush}"
+                        BorderThickness="0,0,0,2"
+                        Padding="{TemplateBinding Padding}">
+                        <ContentPresenter
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Content="{TemplateBinding Content}"
+                            ContentTemplate="{TemplateBinding ContentTemplate}"
+                            FontFamily="{TemplateBinding FontFamily}"
+                            FontSize="{TemplateBinding FontSize}"
+                            FontWeight="{TemplateBinding FontWeight}"
+                            Foreground="{TemplateBinding Foreground}" />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ==================== 标签筛选 ==================== -->
+    <!-- 标签按钮：小号、无底色，选中时加下划线 -->
+    <Style x:Key="DouKBTagButtonStyle" TargetType="Button">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{ThemeResource DouKBInk3Brush}" />
+        <Setter Property="FontFamily" Value="{StaticResource DouKBUiFont}" />
+        <Setter Property="FontSize" Value="{StaticResource DouKBCaptionFontSize}" />
+        <Setter Property="Padding" Value="0,2" />
+        <Setter Property="CornerRadius" Value="0" />
+        <Setter Property="UseSystemFocusVisuals" Value="True" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border
+                        x:Name="Root"
+                        Padding="{TemplateBinding Padding}"
+                        Background="Transparent"
+                        BorderBrush="Transparent"
+                        BorderThickness="0,0,0,1">
+                        <ContentPresenter
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Content="{TemplateBinding Content}"
+                            ContentTemplate="{TemplateBinding ContentTemplate}"
+                            FontFamily="{TemplateBinding FontFamily}"
+                            FontSize="{TemplateBinding FontSize}"
+                            FontWeight="{TemplateBinding FontWeight}"
+                            Foreground="{TemplateBinding Foreground}" />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="DouKBTagButtonSelectedStyle" TargetType="Button" BasedOn="{StaticResource DouKBTagButtonStyle}">
+        <Setter Property="Foreground" Value="{ThemeResource DouKBInkBrush}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border
+                        Padding="{TemplateBinding Padding}"
+                        Background="Transparent"
+                        BorderBrush="{ThemeResource DouKBInkBrush}"
+                        BorderThickness="0,0,0,1">
+                        <ContentPresenter
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Content="{TemplateBinding Content}"
+                            ContentTemplate="{TemplateBinding ContentTemplate}"
+                            FontFamily="{TemplateBinding FontFamily}"
+                            FontSize="{TemplateBinding FontSize}"
+                            FontWeight="{TemplateBinding FontWeight}"
+                            Foreground="{TemplateBinding Foreground}" />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ==================== 输入 ==================== -->
+    <!-- 只用一条底线，不做输入框卡片 -->
+    <Style x:Key="DouKBLineTextBoxStyle" TargetType="TextBox">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="{ThemeResource DouKBRuleBrush}" />
+        <Setter Property="BorderThickness" Value="0,0,0,1" />
+        <Setter Property="CornerRadius" Value="0" />
+        <Setter Property="FontFamily" Value="{StaticResource DouKBReadFont}" />
+        <Setter Property="FontSize" Value="{StaticResource DouKBReadingFontSize}" />
+        <Setter Property="Foreground" Value="{ThemeResource DouKBInkBrush}" />
+        <Setter Property="PlaceholderForeground" Value="{ThemeResource DouKBInk3Brush}" />
+        <Setter Property="SelectionHighlightColor" Value="{ThemeResource DouKBLiveBrush}" />
+        <Setter Property="Padding" Value="0,4,0,10" />
+        <Setter Property="UseSystemFocusVisuals" Value="False" />
+    </Style>
+
+    <Style x:Key="DouKBSearchTextBoxStyle" TargetType="TextBox" BasedOn="{StaticResource DouKBLineTextBoxStyle}">
+        <Setter Property="FontFamily" Value="{StaticResource DouKBUiFont}" />
+        <Setter Property="FontSize" Value="{StaticResource DouKBLedgerFontSize}" />
+        <Setter Property="Padding" Value="0,4,0,6" />
+    </Style>
+
+    <!-- ==================== 容器 ==================== -->
+    <Style x:Key="DouKBCardStyle" TargetType="Border">
+        <Setter Property="Background" Value="{ThemeResource DouKBSurfaceBrush}" />
+        <Setter Property="BorderBrush" Value="{ThemeResource DouKBRuleBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{StaticResource DouKBCornerLarge}" />
+    </Style>
+
+    <!-- 9:16 视频片格 -->
+    <Style x:Key="DouKBFrameStyle" TargetType="Border">
+        <Setter Property="Background" Value="{ThemeResource DouKBFrameBrush}" />
+        <Setter Property="CornerRadius" Value="{StaticResource DouKBCornerSmall}" />
+        <Setter Property="Width" Value="{StaticResource DouKBFrameWidth}" />
+        <Setter Property="Height" Value="{StaticResource DouKBFrameHeight}" />
+    </Style>
+
+    <Style x:Key="DouKBHairlineStyle" TargetType="Border">
+        <Setter Property="Height" Value="1" />
+        <Setter Property="Background" Value="{ThemeResource DouKBRuleBrush}" />
+    </Style>
+
+    <Style x:Key="DouKBQuoteRuleStyle" TargetType="Border">
+        <Setter Property="Width" Value="2" />
+        <Setter Property="Background" Value="{ThemeResource DouKBInkBrush}" />
+    </Style>
+
+</ResourceDictionary>

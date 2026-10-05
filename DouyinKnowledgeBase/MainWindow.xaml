@@ -24,11 +24,82 @@
             </TitleBar.IconSource>
         </TitleBar>
 
-        <!--
-            The Frame hosts pages for your application content. Add your UI to
-            MainPage.xaml rather than here so you can use Page features such as
-            navigation events and the Loaded lifecycle.
-        -->
-        <Frame x:Name="RootFrame" Grid.Row="1" />
+        <!-- 左侧固定导航轨 + 内容 Frame；页面只负责自己的内容区 -->
+        <NavigationView
+            x:Name="Shell"
+            Grid.Row="1"
+            Background="{ThemeResource DouKBPaperBrush}"
+            IsBackButtonVisible="Collapsed"
+            IsPaneToggleButtonVisible="False"
+            IsSettingsVisible="False"
+            OpenPaneLength="172"
+            PaneDisplayMode="Left"
+            SelectionChanged="Shell_SelectionChanged">
+
+            <NavigationView.Resources>
+                <!-- 导航轨底色与内容区分层 -->
+                <StaticResource x:Key="NavigationViewDefaultPaneBackground" ResourceKey="DouKBSunkBrush" />
+                <StaticResource x:Key="NavigationViewExpandedPaneBackground" ResourceKey="DouKBSunkBrush" />
+            </NavigationView.Resources>
+
+            <NavigationView.PaneHeader>
+                <StackPanel
+                    Margin="12,8,0,12"
+                    Orientation="Horizontal"
+                    Spacing="9">
+                    <Border
+                        Width="21"
+                        Height="21"
+                        Background="{ThemeResource DouKBStrongBrush}"
+                        CornerRadius="3">
+                        <TextBlock
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            FontFamily="{StaticResource DouKBReadFont}"
+                            FontSize="13"
+                            Foreground="{ThemeResource DouKBOnStrongBrush}"
+                            Text="知" />
+                    </Border>
+                    <TextBlock
+                        VerticalAlignment="Center"
+                        Style="{StaticResource DouKBMetaTextStyle}"
+                        Text="抖音知识库" />
+                </StackPanel>
+            </NavigationView.PaneHeader>
+
+            <NavigationView.MenuItems>
+                <NavigationViewItem
+                    Content="知识库"
+                    FontFamily="{StaticResource DouKBUiFont}"
+                    FontSize="13.5"
+                    Tag="Library" />
+                <NavigationViewItem
+                    Content="快速获取"
+                    FontFamily="{StaticResource DouKBUiFont}"
+                    FontSize="13.5"
+                    Tag="Capture" />
+                <NavigationViewItemSeparator />
+                <NavigationViewItem
+                    Content="环境准备"
+                    FontFamily="{StaticResource DouKBUiFont}"
+                    FontSize="13.5"
+                    Tag="Setup" />
+                <NavigationViewItem
+                    Content="设置"
+                    FontFamily="{StaticResource DouKBUiFont}"
+                    FontSize="13.5"
+                    Tag="Settings" />
+            </NavigationView.MenuItems>
+
+            <NavigationView.PaneFooter>
+                <TextBlock
+                    x:Name="RailFooterText"
+                    Margin="14,0,14,14"
+                    Style="{StaticResource DouKBCaptionTextStyle}"
+                    Text="正在检测本地环境…" />
+            </NavigationView.PaneFooter>
+
+            <Frame x:Name="RootFrame" />
+        </NavigationView>
     </Grid>
 </Window>
