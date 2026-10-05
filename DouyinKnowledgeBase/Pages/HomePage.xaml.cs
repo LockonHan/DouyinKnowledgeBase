@@ -15,6 +15,7 @@ public sealed partial class HomePage : Page
 
     private readonly KnowledgeIndex _index = new();
     private readonly PipelineSettingsService _settingsService = new();
+    private readonly ObsidianSettingsService _obsidianSettingsService = new();
 
     private IReadOnlyList<KnowledgeItem> _all = [];
     private KnowledgeStatus? _status;
@@ -266,6 +267,113 @@ public sealed partial class HomePage : Page
         }
 
         NavigationService.Current.Navigate(AppPage.Reading, row.TranscriptPath);
+    }
+
+    /// <summary>进入批量选择模式：列表多选，显示操作条。</summary>
+    private void BulkExportButton_Click(object sender, RoutedEventArgs e)
+    {
+        ItemList.SelectionMode = ListViewSelectionMode.Multiple;
+        ItemList.IsItemClickEnabled = false;
+        ItemList.SelectedItems.Clear();
+        SelectionBar.Visibility = Visibility.Visible;
+        BulkExportButton.Visibility = Visibility.Collapsed;
+        UpdateSelectionCount();
+    }
+
+    private void CancelSelectionButton_Click(object sender, RoutedEventArgs e) => ExitSelectionMode();
+
+    private void ItemList_SelectionChanged(object sender, SelectionChangedEventArgs e) => UpdateSelectionCount();
+
+    private void UpdateSelectionCount()
+    {
+        int count = ItemList.SelectedItems.Count;
+        SelectionCount.Text = $"已选 {count} 项";
+        ExportSelectedButton.IsEnabled = count > 0;
+    }
+
+    private void ExitSelectionMode()
+    {
+        ItemList.SelectedItems.Clear();
+        ItemList.SelectionMode = ListViewSelectionMode.None;
+        ItemList.IsItemClickEnabled = true;
+        SelectionBar.Visibility = Visibility.Collapsed;
+        BulkExportButton.Visibility = Visibility.Visible;
+    }
+
+    /// <summary>批量导出选中的文章到 Obsidian；无文章的条目跳过。</summary>
+    private async void ExportSelectedButton_Click(object sender, RoutedEventArgs e)
+    {
+        List<LibraryRow> rows = ItemList.SelectedItems.Cast<LibraryRow>().ToList();
+        if (rows.Count == 0)
+        {
+            return;
+        }
+
+        ExportSelectedButton.IsEnabled = false;
+        try
+        {
+            PipelineSettings settings = await _settingsService.LoadAsync();
+            ObsidianSettings obsidian = await _obsidianSettingsService.LoadAsync();
+            if (string.IsNullOrWhiteSpace(obsidian.VaultPath))
+            {
+                ShowStatus("请先在「设置 → Obsidian 集成」配置 Vault 路径。", InfoBarSeverity.Warning);
+                return;
+            }
+
+            ArticleStore store = new(settings);
+            ObsidianExporter exporter = new();
+            int ok = 0;
+            int skipped = 0;
+            List<string> failures = [];
+
+            foreach (LibraryRow row in rows)
+            {
+                if (string.IsNullOrEmpty(row.ArticleId))
+                {
+                    skipped++;
+                    continue;
+                }
+
+                ArticleMeta? meta = await store.ReadMetaAsync(row.ArticleId);
+                string? markdown = meta is null ? null : await store.ReadMarkdownAsync(row.ArticleId);
+                if (meta is null || string.IsNullOrWhiteSpace(markdown))
+                {
+                    skipped++;
+                    continue;
+                }
+
+                ObsidianExportResult result = await exporter.ExportAsync(obsidian, meta, markdown);
+                if (result.Success)
+                {
+                    ok++;
+                }
+                else
+                {
+                    failures.Add($"{row.Title}：{result.Error}");
+                }
+            }
+
+            string summary = failures.Count == 0
+                ? $"已导出 {ok} 篇到 Obsidian" + (skipped > 0 ? $"，跳过 {skipped} 篇（无文章）" : "")
+                : $"已导出 {ok} 篇，失败 {failures.Count} 篇：" + string.Join("；", failures.Take(3));
+            ShowStatus(summary, failures.Count == 0 ? InfoBarSeverity.Success : InfoBarSeverity.Warning);
+        }
+        catch (Exception ex)
+        {
+            ShowStatus("批量导出失败：" + ex.Message, InfoBarSeverity.Error);
+        }
+        finally
+        {
+            ExportSelectedButton.IsEnabled = true;
+            ExitSelectionMode();
+        }
+    }
+
+    private void ShowStatus(string message, InfoBarSeverity severity)
+    {
+        StatusInfo.Severity = severity;
+        StatusInfo.Title = message;
+        StatusInfo.IsOpen = true;
     }
 
     private static LibraryRow ToRow(KnowledgeItem item) => new()

@@ -22,4 +22,8 @@ public sealed class LlmSettings
     /// <summary>采样温度，范围 0~2，默认 0.7。</summary>
     [JsonPropertyName("temperature")]
     public double Temperature { get; set; } = 0.7;
+
+    /// <summary>单次请求超时（秒），默认 300；长视频转写生成文章可能需要数分钟。</summary>
+    [JsonPropertyName("timeoutSeconds")]
+    public double TimeoutSeconds { get; set; } = 300;
 }

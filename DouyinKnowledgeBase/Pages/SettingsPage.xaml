@@ -85,6 +85,18 @@
                                 Text="0.7" />
                         </StackPanel>
                     </StackPanel>
+
+                    <StackPanel Spacing="6">
+                        <TextBlock Style="{StaticResource DouKBLedgerTextStyle}" Text="请求超时（秒）" />
+                        <TextBox
+                            x:Name="TimeoutBox"
+                            AutomationProperties.Name="请求超时秒数"
+                            PlaceholderText="300"
+                            Style="{StaticResource DouKBLineTextBoxStyle}" />
+                        <TextBlock
+                            Style="{StaticResource DouKBCaptionTextStyle}"
+                            Text="单次请求等待模型回复的上限；长视频转写生成文章可能超过一分钟，建议保持 300 秒以上。" />
+                    </StackPanel>
                 </StackPanel>
 
                 <!-- ==================== 视频下载与转写 ==================== -->
@@ -151,6 +163,78 @@
                     <TextBlock
                         Style="{StaticResource DouKBCaptionTextStyle}"
                         Text="提示：抖音下载依赖浏览器 Cookie。若下载失败，可在「快速获取」点“刷新 Cookie”登录一次。" />
+                </StackPanel>
+
+                <!-- ==================== Obsidian 集成 ==================== -->
+                <TextBlock
+                    Margin="0,34,0,0"
+                    Style="{StaticResource DouKBSectionTitleStyle}"
+                    Text="Obsidian 集成" />
+                <TextBlock
+                    Margin="0,8,0,0"
+                    Style="{StaticResource DouKBCaptionTextStyle}"
+                    Text="把生成的知识文章导出到 Obsidian 知识库。可填写 vault 路径直接写入，或开启「命令行界面」后由 Obsidian 自动索引与打开。本区块改动即时保存。" />
+                <Border Margin="0,14,0,0" Style="{StaticResource DouKBHairlineStyle}" />
+
+                <StackPanel Margin="0,16,0,0" Spacing="16">
+                    <StackPanel Spacing="6">
+                        <TextBlock Style="{StaticResource DouKBLedgerTextStyle}" Text="Vault 名称（可选）" />
+                        <TextBox
+                            x:Name="VaultNameBox"
+                            AutomationProperties.Name="Vault 名称"
+                            LostFocus="ObsidianSetting_Changed"
+                            PlaceholderText="心流"
+                            Style="{StaticResource DouKBLineTextBoxStyle}" />
+                    </StackPanel>
+
+                    <StackPanel Spacing="6">
+                        <TextBlock Style="{StaticResource DouKBLedgerTextStyle}" Text="Vault 路径" />
+                        <TextBox
+                            x:Name="VaultPathBox"
+                            AutomationProperties.Name="Vault 路径"
+                            LostFocus="ObsidianSetting_Changed"
+                            PlaceholderText="D:\Obsidian\心流"
+                            Style="{StaticResource DouKBLineTextBoxStyle}" />
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <Button
+                            x:Name="DetectVaultButton"
+                            Click="DetectVaultButton_Click"
+                            Content="检测 Obsidian vault"
+                            Style="{StaticResource DouKBQuietButtonStyle}" />
+                        <TextBlock
+                            x:Name="DetectStatusText"
+                            VerticalAlignment="Center"
+                            Style="{StaticResource DouKBCaptionTextStyle}"
+                            Text="" />
+                    </StackPanel>
+
+                    <StackPanel Spacing="6">
+                        <TextBlock Style="{StaticResource DouKBLedgerTextStyle}" Text="导出子目录（vault 内）" />
+                        <TextBox
+                            x:Name="SubfolderBox"
+                            AutomationProperties.Name="导出子目录"
+                            LostFocus="ObsidianSetting_Changed"
+                            PlaceholderText="抖音知识库"
+                            Style="{StaticResource DouKBLineTextBoxStyle}" />
+                    </StackPanel>
+
+                    <ToggleSwitch
+                        x:Name="FrontmatterSwitch"
+                        AutomationProperties.Name="写入元数据头"
+                        Header="写入元数据头（frontmatter）"
+                        OffContent="不写"
+                        OnContent="写入标题/标签/来源/时间"
+                        Toggled="ObsidianSetting_Changed" />
+
+                    <ToggleSwitch
+                        x:Name="OpenAfterExportSwitch"
+                        AutomationProperties.Name="导出后打开笔记"
+                        Header="导出后打开笔记（需 Obsidian 正在运行）"
+                        OffContent="仅写入文件"
+                        OnContent="导出后跳转到该笔记"
+                        Toggled="ObsidianSetting_Changed" />
                 </StackPanel>
 
                 <!-- ==================== 操作 ==================== -->

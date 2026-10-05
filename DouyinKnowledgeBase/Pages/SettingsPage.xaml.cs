@@ -11,8 +11,12 @@ public sealed partial class SettingsPage : Page
 {
     private readonly SettingsService _settingsService = new();
     private readonly PipelineSettingsService _pipelineSettingsService = new();
+    private readonly ObsidianSettingsService _obsidianSettingsService = new();
     private readonly LlmClient _llmClient = new();
     private readonly AsrServerManager _asrServer = App.AsrServer;
+
+    /// <summary>加载配置回填控件时抑制即时保存，避免把默认值反写回配置。</summary>
+    private bool _suppressObsidianSave;
 
     public SettingsPage()
     {
@@ -27,6 +31,7 @@ public sealed partial class SettingsPage : Page
         ApiKeyBox.Password = settings.ApiKey;
         ModelBox.Text = settings.Model;
         TemperatureSlider.Value = settings.Temperature;
+        TimeoutBox.Text = settings.TimeoutSeconds.ToString("0");
         TestButton.IsEnabled = true;
 
         PipelineSettings pipeline = await _pipelineSettingsService.LoadAsync();
@@ -35,6 +40,69 @@ public sealed partial class SettingsPage : Page
         ModelsDirBox.Text = pipeline.ModelsDir;
         ResidentSwitch.IsOn = pipeline.AsrResident;
         SelectDevice(pipeline.Device);
+
+        ObsidianSettings obsidian = await _obsidianSettingsService.LoadAsync();
+        _suppressObsidianSave = true;
+        VaultNameBox.Text = obsidian.VaultName;
+        VaultPathBox.Text = obsidian.VaultPath;
+        SubfolderBox.Text = obsidian.Subfolder;
+        FrontmatterSwitch.IsOn = obsidian.AddFrontmatter;
+        OpenAfterExportSwitch.IsOn = obsidian.OpenAfterExport;
+        _suppressObsidianSave = false;
+    }
+
+    private async void DetectVaultButton_Click(object sender, RoutedEventArgs e)
+    {
+        DetectVaultButton.IsEnabled = false;
+        DetectStatusText.Text = "正在检测……";
+        try
+        {
+            if (!await ObsidianCli.IsAvailableAsync())
+            {
+                DetectStatusText.Text = "未检测到 Obsidian CLI：请确保 Obsidian 正在运行，并在「设置 → 关于 → 高级」开启「命令行界面」。";
+                return;
+            }
+
+            IReadOnlyList<ObsidianCli.ObsidianVaultInfo> vaults = await ObsidianCli.ListVaultsAsync();
+            if (vaults.Count == 0)
+            {
+                DetectStatusText.Text = "未发现 vault（Obsidian 中可能还没打开过任何 vault）。";
+                return;
+            }
+
+            ObsidianCli.ObsidianVaultInfo first = vaults[0];
+            VaultNameBox.Text = first.Name;
+            VaultPathBox.Text = first.Path;
+            DetectStatusText.Text = vaults.Count == 1
+                ? $"已自动填入：{first.Name}"
+                : $"已自动填入第一个 vault（共 {vaults.Count} 个，可手动修改）：{first.Name}";
+        }
+        catch (Exception ex)
+        {
+            DetectStatusText.Text = "检测失败：" + ex.Message;
+        }
+        finally
+        {
+            DetectVaultButton.IsEnabled = true;
+        }
+    }
+
+    /// <summary>Obsidian 区块改动即时保存：开关切换、文本框失焦均触发。</summary>
+    private async void ObsidianSetting_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_suppressObsidianSave)
+        {
+            return;
+        }
+
+        try
+        {
+            await _obsidianSettingsService.SaveAsync(ReadObsidianSettings());
+        }
+        catch (Exception)
+        {
+            // 即时保存失败不打断用户操作，值仍可后续通过主保存重试。
+        }
     }
 
     private void SelectDevice(string device)
@@ -69,12 +137,29 @@ public sealed partial class SettingsPage : Page
 
     private LlmSettings ReadSettings()
     {
+        double timeout = double.TryParse(TimeoutBox.Text.Trim(), out double parsed) && parsed > 0
+            ? parsed
+            : 300;
+
         return new LlmSettings
         {
             BaseUrl = BaseUrlBox.Text.Trim(),
             ApiKey = ApiKeyBox.Password.Trim(),
             Model = ModelBox.Text.Trim(),
             Temperature = Math.Round(TemperatureSlider.Value, 1),
+            TimeoutSeconds = timeout,
+        };
+    }
+
+    private ObsidianSettings ReadObsidianSettings()
+    {
+        return new ObsidianSettings
+        {
+            VaultName = VaultNameBox.Text.Trim(),
+            VaultPath = VaultPathBox.Text.Trim(),
+            Subfolder = SubfolderBox.Text.Trim(),
+            AddFrontmatter = FrontmatterSwitch.IsOn,
+            OpenAfterExport = OpenAfterExportSwitch.IsOn,
         };
     }
 
@@ -111,6 +196,12 @@ public sealed partial class SettingsPage : Page
             return false;
         }
 
+        if (settings.TimeoutSeconds < 30 || settings.TimeoutSeconds > 1800)
+        {
+            message = "请求超时应在 30~1800 秒之间（长视频文稿建议 300 秒以上）";
+            return false;
+        }
+
         message = "";
         return true;
     }
@@ -137,8 +228,11 @@ public sealed partial class SettingsPage : Page
             return;
         }
 
+        ObsidianSettings obsidian = ReadObsidianSettings();
+
         await _settingsService.SaveAsync(settings);
         await _pipelineSettingsService.SaveAsync(pipeline);
+        await _obsidianSettingsService.SaveAsync(obsidian);
 
         // 按常驻开关启停转写服务。
         if (pipeline.AsrResident)

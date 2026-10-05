@@ -14,14 +14,25 @@ public sealed class LlmClient
 
     public LlmClient()
     {
-        _http = new HttpClient { Timeout = TimeSpan.FromSeconds(60) };
+        // 不在实例级限制总超时：单次请求超时由 ChatAsync 按 settings.TimeoutSeconds 动态控制，
+        // 以适配长文稿生成（固定 60 秒曾导致长视频转写生成文章被中断）。
+        _http = new HttpClient { Timeout = Timeout.InfiniteTimeSpan };
     }
 
     /// <summary>
-    /// 发送一次普通对话，返回助手回复内容。
+    /// 发送一次普通对话，返回助手回复内容。超时按 settings.TimeoutSeconds 动态控制；
+    /// 超时抛出 TimeoutException（含友好提示），调用方主动取消则原样抛出。
     /// </summary>
-    public async Task<string> ChatAsync(LlmSettings settings, string systemPrompt, string userMessage)
+    public async Task<string> ChatAsync(
+        LlmSettings settings,
+        string systemPrompt,
+        string userMessage,
+        CancellationToken cancellationToken = default)
     {
+        double timeoutSeconds = settings.TimeoutSeconds > 0 ? settings.TimeoutSeconds : 300;
+        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeoutCts.CancelAfter(TimeSpan.FromSeconds(timeoutSeconds));
+
         string url = settings.BaseUrl.TrimEnd('/') + "/chat/completions";
         var payload = new
         {
@@ -41,24 +52,39 @@ public sealed class LlmClient
         }
 
         request.Content = JsonContent.Create(payload, options: JsonDefaults.CaseInsensitive);
-        using HttpResponseMessage response = await _http.SendAsync(request);
-        string body = await response.Content.ReadAsStringAsync();
-        if (!response.IsSuccessStatusCode)
-        {
-            throw new Exception($"HTTP {(int)response.StatusCode}: {Truncate(body, 400)}");
-        }
 
-        using JsonDocument doc = JsonDocument.Parse(body);
-        if (doc.RootElement.TryGetProperty("choices", out JsonElement choices) &&
-            choices.GetArrayLength() > 0 &&
-            choices[0].TryGetProperty("message", out JsonElement message) &&
-            message.TryGetProperty("content", out JsonElement content) &&
-            content.ValueKind == JsonValueKind.String)
+        try
         {
-            return content.GetString() ?? "";
-        }
+            using HttpResponseMessage response = await _http.SendAsync(request, timeoutCts.Token);
+            string body = await response.Content.ReadAsStringAsync(timeoutCts.Token);
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new Exception($"HTTP {(int)response.StatusCode}: {Truncate(body, 400)}");
+            }
 
-        throw new Exception("响应中未找到 choices[0].message.content，请确认接入点兼容 OpenAI 格式。");
+            using JsonDocument doc = JsonDocument.Parse(body);
+            if (doc.RootElement.TryGetProperty("choices", out JsonElement choices) &&
+                choices.GetArrayLength() > 0 &&
+                choices[0].TryGetProperty("message", out JsonElement message) &&
+                message.TryGetProperty("content", out JsonElement content) &&
+                content.ValueKind == JsonValueKind.String)
+            {
+                return content.GetString() ?? "";
+            }
+
+            throw new Exception("响应中未找到 choices[0].message.content，请确认接入点兼容 OpenAI 格式。");
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // 调用方主动取消，原样抛出，不误报为超时。
+            throw;
+        }
+        catch (OperationCanceledException)
+        {
+            // 链接令牌因超时触发（CancelAfter），给出可操作的友好提示。
+            throw new TimeoutException(
+                $"生成超时：模型在 {timeoutSeconds:0} 秒内未完成响应。可在「设置 → 模型设置」调大「请求超时（秒）」后重试。");
+        }
     }
 
     /// <summary>发送一条极简消息，用于“测试连接”。</summary>

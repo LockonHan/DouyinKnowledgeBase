@@ -41,6 +41,11 @@
                     Content="复制全文"
                     IsEnabled="False"
                     Style="{StaticResource DouKBQuietButtonStyle}" />
+                <Button
+                    x:Name="ObsidianExportButton"
+                    Click="ObsidianExportButton_Click"
+                    Content="导出到 Obsidian"
+                    Style="{StaticResource DouKBQuietButtonStyle}" />
                 <ProgressRing
                     x:Name="BusyRing"
                     Width="18"
@@ -112,6 +117,12 @@
                     <ColumnDefinition Width="170" />
                 </Grid.ColumnDefinitions>
 
+                <InfoBar
+                    x:Name="StatusInfo"
+                    Grid.Column="0"
+                    Margin="54,18,24,0"
+                    IsClosable="True"
+                    IsOpen="False" />
                 <ScrollViewer
                     Grid.Column="0"
                     Padding="54,38,24,60"
@@ -183,12 +194,6 @@
                                 Style="{StaticResource DouKBLedgerTextStyle}"
                                 Text="点击上方「生成知识文章」，调用配置好的大模型把转写稿整理成结构化文章。" />
                         </StackPanel>
-
-                        <InfoBar
-                            x:Name="StatusInfo"
-                            Margin="0,18,0,0"
-                            IsClosable="True"
-                            IsOpen="False" />
                     </StackPanel>
                 </ScrollViewer>
 

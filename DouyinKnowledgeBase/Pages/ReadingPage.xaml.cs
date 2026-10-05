@@ -288,6 +288,47 @@ public sealed partial class ReadingPage : Page
         await Task.CompletedTask;
     }
 
+    private async void ObsidianExportButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_store is null || _item is null)
+        {
+            ShowStatus("当前没有可导出的知识条目。", InfoBarSeverity.Warning);
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_markdown))
+        {
+            ShowStatus("当前文章为空，请先点击「生成知识文章」。", InfoBarSeverity.Warning);
+            return;
+        }
+
+        try
+        {
+            ArticleMeta? meta = await _store.ReadMetaAsync(_item.ArticleId ?? _item.Id);
+            if (meta is null)
+            {
+                ShowStatus("未找到文章元数据，无法导出到 Obsidian。", InfoBarSeverity.Warning);
+                return;
+            }
+
+            ObsidianExporter exporter = new();
+            ObsidianExportResult result = await exporter.ExportAsync(meta, _markdown);
+            if (result.Success)
+            {
+                string suffix = result.Opened ? "（已在 Obsidian 中打开）" : "";
+                ShowStatus($"已导出到 Obsidian：{result.FilePath}{suffix}", InfoBarSeverity.Success);
+            }
+            else
+            {
+                ShowStatus($"导出失败：{result.Error}", InfoBarSeverity.Warning);
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowStatus("导出失败：" + ex.Message, InfoBarSeverity.Error);
+        }
+    }
+
     private static nint GetWindowHandle()
     {
         return WinRT.Interop.WindowNative.GetWindowHandle(App.MainWindow);

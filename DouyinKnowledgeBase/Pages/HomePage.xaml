@@ -73,6 +73,11 @@
                 Content="待总结"
                 Style="{StaticResource DouKBTabButtonStyle}"
                 Tag="Transcribed" />
+            <Button
+                x:Name="BulkExportButton"
+                Click="BulkExportButton_Click"
+                Content="批量导出"
+                Style="{StaticResource DouKBQuietButtonStyle}" />
         </StackPanel>
 
         <!-- 标签筛选：按出现次数倒序，最多 12 个 -->
@@ -98,35 +103,65 @@
 
         <Border Grid.Row="3" Style="{StaticResource DouKBHairlineStyle}" />
 
-        <!-- 处理中条：有管线在跑时显示标题与进度 -->
-        <StackPanel
-            x:Name="LiveBar"
-            Grid.Row="4"
-            Margin="0,14,0,0"
-            Orientation="Horizontal"
-            Spacing="14"
-            Visibility="Collapsed">
-            <TextBlock
-                x:Name="LiveTitle"
-                VerticalAlignment="Center"
-                Style="{StaticResource DouKBLedgerTextStyle}"
-                FontWeight="SemiBold"
-                Foreground="{ThemeResource DouKBInkBrush}"
-                Text="" />
-            <ProgressBar
-                x:Name="LiveBarProgress"
-                Width="170"
-                VerticalAlignment="Center"
-                Background="{ThemeResource DouKBRuleBrush}"
-                CornerRadius="0"
-                Foreground="{ThemeResource DouKBLiveBrush}"
-                Maximum="100" />
-            <TextBlock
-                x:Name="LiveState"
-                VerticalAlignment="Center"
-                Style="{StaticResource DouKBMetaTextStyle}"
-                Foreground="{ThemeResource DouKBLiveBrush}"
-                Text="" />
+        <!-- 处理中条 / 批量选择操作条 / 状态提示 -->
+        <StackPanel Grid.Row="4" Margin="0,14,0,0" Spacing="14">
+            <StackPanel
+                x:Name="LiveBar"
+                Orientation="Horizontal"
+                Spacing="14"
+                Visibility="Collapsed">
+                <TextBlock
+                    x:Name="LiveTitle"
+                    VerticalAlignment="Center"
+                    Style="{StaticResource DouKBLedgerTextStyle}"
+                    FontWeight="SemiBold"
+                    Foreground="{ThemeResource DouKBInkBrush}"
+                    Text="" />
+                <ProgressBar
+                    x:Name="LiveBarProgress"
+                    Width="170"
+                    VerticalAlignment="Center"
+                    Background="{ThemeResource DouKBRuleBrush}"
+                    CornerRadius="0"
+                    Foreground="{ThemeResource DouKBLiveBrush}"
+                    Maximum="100" />
+                <TextBlock
+                    x:Name="LiveState"
+                    VerticalAlignment="Center"
+                    Style="{StaticResource DouKBMetaTextStyle}"
+                    Foreground="{ThemeResource DouKBLiveBrush}"
+                    Text="" />
+            </StackPanel>
+
+            <StackPanel
+                x:Name="SelectionBar"
+                Orientation="Horizontal"
+                Spacing="14"
+                Visibility="Collapsed">
+                <TextBlock
+                    x:Name="SelectionCount"
+                    VerticalAlignment="Center"
+                    Style="{StaticResource DouKBLedgerTextStyle}"
+                    FontWeight="SemiBold"
+                    Foreground="{ThemeResource DouKBInkBrush}"
+                    Text="已选 0 项" />
+                <Button
+                    x:Name="ExportSelectedButton"
+                    Click="ExportSelectedButton_Click"
+                    Content="导出到 Obsidian"
+                    IsEnabled="False"
+                    Style="{StaticResource DouKBStrongButtonStyle}" />
+                <Button
+                    x:Name="CancelSelectionButton"
+                    Click="CancelSelectionButton_Click"
+                    Content="取消选择"
+                    Style="{StaticResource DouKBQuietButtonStyle}" />
+            </StackPanel>
+
+            <InfoBar
+                x:Name="StatusInfo"
+                IsClosable="True"
+                IsOpen="False" />
         </StackPanel>
 
         <!-- 条目列表：无卡片，靠节奏与对齐分层 -->
@@ -136,6 +171,7 @@
             Padding="0,0,0,32"
             IsItemClickEnabled="True"
             ItemClick="ItemList_ItemClick"
+            SelectionChanged="ItemList_SelectionChanged"
             SelectionMode="None">
             <ListView.ItemContainerStyle>
                 <Style TargetType="ListViewItem">
